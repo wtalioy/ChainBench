@@ -17,7 +17,6 @@ LOG_FORMAT = (
     "<cyan>{extra[component]}</cyan> | "
     "<level>{message}</level>"
 )
-
 STREAM_LOG_PREFIX_PATTERNS = (
     re.compile(r"^\d{2}:\d{2}:\d{2}\s+\|\s+[A-Z]+\s+\|\s+[^|]+\|\s+"),
     re.compile(r"^\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2}(?:,\d+)?\s+[A-Z]+\s+"),
@@ -59,6 +58,9 @@ class LoggerAdapter:
     def error(self, message: str, *args: Any) -> None:
         self._logger.error(self._render(message, *args))
 
+    def exception(self, message: str, *args: Any) -> None:
+        self._logger.exception(self._render(message, *args))
+
     def success(self, message: str, *args: Any) -> None:
         self._logger.success(self._render(message, *args))
 
@@ -88,3 +90,4 @@ def clean_stream_line(line: str) -> str:
     for pattern in STREAM_LOG_PREFIX_PATTERNS:
         cleaned = pattern.sub("", cleaned)
     return cleaned
+

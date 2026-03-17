@@ -1,125 +1,13 @@
-#!/usr/bin/env python3
-"""Persistent Stage-3 generator batch runner.
-
-Loads one spoof generator once, then processes a JSONL job list sequentially.
-This avoids paying model initialization cost for every single parent sample.
-"""
+"""Generator adapters: one class per TTS clone (Qwen3, CosyVoice3, SparkTTS, F5-TTS, VoxCPM, IndexTTS2)."""
 
 from __future__ import annotations
 
-import argparse
-import json
 import os
 import sys
-import time
 from pathlib import Path
 from typing import Any
 
-from common_logging import format_elapsed, get_logger, progress_bar, setup_logging
-
-
-LOGGER = get_logger("stage3-runner")
-
-
-def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--adapter", required=True, help="Adapter key to use.")
-    parser.add_argument("--repo-path", required=True, help="Generator repo root.")
-    parser.add_argument("--config-path", required=True, help="Adapter config JSON.")
-    parser.add_argument("--jobs-path", required=True, help="JSONL jobs file.")
-    parser.add_argument("--results-path", required=True, help="JSONL results file.")
-    parser.add_argument(
-        "--log-level",
-        default="INFO",
-        choices=("DEBUG", "INFO", "WARNING", "ERROR"),
-        help="Logging verbosity.",
-    )
-    parser.add_argument(
-        "--progress-every",
-        type=int,
-        default=0,
-        help="Emit aggregate progress every N jobs. Default auto-selects by batch size.",
-    )
-    return parser.parse_args()
-
-
-def load_json(path: Path) -> dict[str, Any]:
-    with path.open("r", encoding="utf-8") as handle:
-        return json.load(handle)
-
-
-def load_jobs(path: Path) -> list[dict[str, Any]]:
-    jobs: list[dict[str, Any]] = []
-    with path.open("r", encoding="utf-8") as handle:
-        for line in handle:
-            line = line.strip()
-            if line:
-                jobs.append(json.loads(line))
-    return jobs
-
-
-def append_jsonl(path: Path, row: dict[str, Any]) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with path.open("a", encoding="utf-8") as handle:
-        handle.write(json.dumps(row, ensure_ascii=False) + "\n")
-
-
-def map_qwen_language(language: str) -> str:
-    return {"zh": "Chinese", "en": "English"}.get(language, "Auto")
-
-
-def resolve_local_or_hf_model_dir(repo_path: Path, local_path_str: str, hf_repo_id: str | None) -> Path:
-    local_path = Path(local_path_str)
-    if not local_path.is_absolute():
-        local_path = repo_path / local_path
-    if local_path.exists():
-        if not local_path.is_dir():
-            raise NotADirectoryError(f"Model path exists but is not a directory: {local_path}")
-        if not hf_repo_id:
-            return local_path
-
-        # Local directory exists: ensure it is complete/consistent with the HF snapshot.
-        LOGGER.info("verify model snapshot %s -> %s", hf_repo_id, local_path)
-        try:
-            from huggingface_hub import snapshot_download
-
-            snapshot_download(
-                repo_id=hf_repo_id,
-                local_dir=str(local_path),
-                local_dir_use_symlinks=False,
-                resume_download=True,
-            )
-        except Exception as exc:
-            raise RuntimeError(
-                f"Failed to verify/download HF model snapshot {hf_repo_id} into existing directory {local_path}: "
-                f"{type(exc).__name__}: {exc}"
-            ) from exc
-        return local_path
-    if not hf_repo_id:
-        raise FileNotFoundError(f"Local model directory not found: {local_path}")
-
-    LOGGER.info("download model %s -> %s", hf_repo_id, local_path)
-    from huggingface_hub import snapshot_download
-
-    snapshot_download(
-        repo_id=hf_repo_id,
-        local_dir=str(local_path),
-        local_dir_use_symlinks=False,
-        resume_download=True,
-    )
-    return local_path
-
-
-class AdapterRunner:
-    def __init__(self, repo_path: Path, config: dict[str, Any]) -> None:
-        self.repo_path = repo_path
-        self.config = config
-
-    def setup(self) -> None:
-        raise NotImplementedError
-
-    def run_job(self, job: dict[str, Any]) -> dict[str, Any]:
-        raise NotImplementedError
+from .base import AdapterRunner, map_qwen_language, resolve_local_or_hf_model_dir
 
 
 class Qwen3CloneRunner(AdapterRunner):
@@ -128,7 +16,6 @@ class Qwen3CloneRunner(AdapterRunner):
         sys.path.insert(0, str(self.repo_path))
         import torch
         from qwen_tts import Qwen3TTSModel
-
         self.torch = torch
         dtype_name = self.config.get("dtype", "bfloat16")
         dtype = getattr(torch, dtype_name)
@@ -141,7 +28,6 @@ class Qwen3CloneRunner(AdapterRunner):
 
     def run_job(self, job: dict[str, Any]) -> dict[str, Any]:
         import soundfile as sf
-
         output_path = Path(job["output_path"])
         output_path.parent.mkdir(parents=True, exist_ok=True)
         wavs, sr = self.model.generate_voice_clone(
@@ -162,7 +48,6 @@ class CosyVoice3CloneRunner(AdapterRunner):
         sys.path.insert(0, str(self.repo_path / "third_party" / "Matcha-TTS"))
         import torch
         from cosyvoice.cli.cosyvoice import AutoModel
-
         self.torch = torch
         model_dir = resolve_local_or_hf_model_dir(
             self.repo_path,
@@ -173,14 +58,12 @@ class CosyVoice3CloneRunner(AdapterRunner):
 
     def run_job(self, job: dict[str, Any]) -> dict[str, Any]:
         import torchaudio
-
         output_path = Path(job["output_path"])
         output_path.parent.mkdir(parents=True, exist_ok=True)
         prompt_text = job["prompt_text"]
         prefix = self.config.get("prepend_prompt_prefix", "")
         if prefix:
             prompt_text = f"{prefix}{prompt_text}"
-
         outputs = list(
             self.model.inference_zero_shot(
                 job["text"],
@@ -202,7 +85,6 @@ class SparkTTSCloneRunner(AdapterRunner):
         sys.path.insert(0, str(self.repo_path))
         import torch
         from cli.SparkTTS import SparkTTS
-
         device_name = self.config.get("device", "cuda:0")
         self.torch = torch
         self.device = torch.device(device_name)
@@ -215,7 +97,6 @@ class SparkTTSCloneRunner(AdapterRunner):
 
     def run_job(self, job: dict[str, Any]) -> dict[str, Any]:
         import soundfile as sf
-
         output_path = Path(job["output_path"])
         output_path.parent.mkdir(parents=True, exist_ok=True)
         wav = self.model.inference(
@@ -235,7 +116,6 @@ class F5TTSCloneRunner(AdapterRunner):
         os.chdir(self.repo_path)
         sys.path.insert(0, str(self.repo_path / "src"))
         from f5_tts.api import F5TTS
-
         self.model = F5TTS(
             model=self.config.get("model", "F5TTS_v1_Base"),
             ckpt_file=self.config.get("ckpt_file", ""),
@@ -272,7 +152,6 @@ class VoxCPMCloneRunner(AdapterRunner):
         sys.path.insert(0, str(self.repo_path / "src"))
         import soundfile as sf
         from voxcpm import VoxCPM
-
         self.sf = sf
         if self.config.get("model_path"):
             self.model = VoxCPM(
@@ -311,7 +190,6 @@ class IndexTTS2CloneRunner(AdapterRunner):
         os.chdir(self.repo_path)
         sys.path.insert(0, str(self.repo_path))
         from indextts.infer_v2 import IndexTTS2
-
         cfg_path = self.repo_path / self.config.get("cfg_path", "checkpoints/config.yaml")
         model_dir = resolve_local_or_hf_model_dir(
             self.repo_path,
@@ -349,150 +227,3 @@ RUNNER_REGISTRY: dict[str, type[AdapterRunner]] = {
     "voxcpm_clone": VoxCPMCloneRunner,
     "indextts2_clone": IndexTTS2CloneRunner,
 }
-
-
-def main() -> int:
-    args = parse_args()
-    setup_logging(args.log_level)
-
-    repo_path = Path(args.repo_path).resolve()
-    config = load_json(Path(args.config_path))
-    jobs = load_jobs(Path(args.jobs_path))
-    results_path = Path(args.results_path)
-    if results_path.exists():
-        results_path.unlink()
-
-    runner_cls = RUNNER_REGISTRY.get(args.adapter)
-    if runner_cls is None:
-        raise RuntimeError(f"Unsupported adapter: {args.adapter}")
-
-    LOGGER.info("boot adapter=%s repo=%s", args.adapter, repo_path)
-    startup_started_at = time.monotonic()
-    runner = runner_cls(repo_path=repo_path, config=config)
-    runner.setup()
-    total_jobs = len(jobs)
-    progress_every = args.progress_every if args.progress_every > 0 else (1 if total_jobs <= 10 else 5 if total_jobs <= 50 else 25)
-    ok_count = 0
-    skipped_count = 0
-    failed_count = 0
-    started_at = time.monotonic()
-    LOGGER.info(
-        "ready in %s | jobs=%d",
-        format_elapsed(time.monotonic() - startup_started_at),
-        total_jobs,
-    )
-
-    for idx, job in enumerate(jobs, start=1):
-        job_started_at = time.monotonic()
-        LOGGER.info(
-            "%s %d/%d starting sample=%s speaker=%s split=%s",
-            progress_bar(idx - 1, total_jobs),
-            idx,
-            total_jobs,
-            job["sample_id"],
-            job["speaker_id"],
-            job["split"],
-        )
-        output_path = Path(job["output_path"])
-        if output_path.exists():
-            skipped_count += 1
-            append_jsonl(
-                results_path,
-                {
-                    "job_id": job["job_id"],
-                    "status": "skipped_existing",
-                    "output_path": job["output_path"],
-                    "sample_id": job["sample_id"],
-                    "parent_id": job["parent_id"],
-                },
-            )
-            LOGGER.info(
-            "%s %d/%d skip  | %s | sample=%s | ok=%d skip=%d fail=%d",
-                progress_bar(idx, total_jobs),
-                idx,
-                total_jobs,
-                format_elapsed(time.monotonic() - job_started_at),
-                job["sample_id"],
-                ok_count,
-                skipped_count,
-                failed_count,
-            )
-            continue
-
-        try:
-            meta = runner.run_job(job)
-            ok_count += 1
-            append_jsonl(
-                results_path,
-                {
-                    "job_id": job["job_id"],
-                    "status": "ok",
-                    "output_path": job["output_path"],
-                    "sample_id": job["sample_id"],
-                    "parent_id": job["parent_id"],
-                    "meta": meta,
-                },
-            )
-            LOGGER.success(
-                "%s %d/%d done  | %s | sample=%s | ok=%d skip=%d fail=%d",
-                progress_bar(idx, total_jobs),
-                idx,
-                total_jobs,
-                format_elapsed(time.monotonic() - job_started_at),
-                job["sample_id"],
-                ok_count,
-                skipped_count,
-                failed_count,
-            )
-        except Exception as exc:
-            failed_count += 1
-            append_jsonl(
-                results_path,
-                {
-                    "job_id": job["job_id"],
-                    "status": "failed",
-                    "output_path": job["output_path"],
-                    "sample_id": job["sample_id"],
-                    "parent_id": job["parent_id"],
-                    "error": f"{type(exc).__name__}: {exc}",
-                },
-            )
-            LOGGER.error(
-                "%s %d/%d fail  | %s | sample=%s | %s | ok=%d skip=%d fail=%d",
-                progress_bar(idx, total_jobs),
-                idx,
-                total_jobs,
-                format_elapsed(time.monotonic() - job_started_at),
-                job["sample_id"],
-                f"{type(exc).__name__}: {exc}",
-                ok_count,
-                skipped_count,
-                failed_count,
-            )
-
-        if idx <= 3 or idx % progress_every == 0 or idx == total_jobs:
-            LOGGER.info(
-                "%s %d/%d pulse | %s | ok=%d skip=%d fail=%d",
-                progress_bar(idx, total_jobs),
-                idx,
-                total_jobs,
-                format_elapsed(time.monotonic() - started_at),
-                ok_count,
-                skipped_count,
-                failed_count,
-            )
-
-    LOGGER.success(
-        "complete | adapter=%s | jobs=%d | elapsed=%s | ok=%d skip=%d fail=%d",
-        args.adapter,
-        total_jobs,
-        format_elapsed(time.monotonic() - started_at),
-        ok_count,
-        skipped_count,
-        failed_count,
-    )
-    return 0
-
-
-if __name__ == "__main__":
-    sys.exit(main())
