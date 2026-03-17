@@ -1,0 +1,116 @@
+{
+  "metadata_path": "data/ChainBench/manifest/metadata.csv",
+  "dataset_root": "data/ChainBench",
+  "output_root": "outputs/eval",
+  "sample_ratio": 0.06,
+  "tasks": ["in_chain"],
+  "baselines": {
+    "aasist": {
+      "repo_path": "baselines/aasist",
+      "conda_prefix": "/remote-home/wangruiming/conda-env/aasist",
+      "train": {
+        "enabled": true,
+        "devices": ["cuda:4"],
+        "seed": 1234,
+        "epochs": 15,
+        "batch_size": 24,
+        "learning_rate": 1e-3,
+        "weight_decay": 0.0001
+      },
+      "eval": {
+        "enabled": true,
+        "devices": ["cuda:4"],
+        "batch_size": 24
+      },
+      "assets": {},
+      "adapter": {
+        "template": "AASIST.conf",
+        "audio_extension": "flac",
+        "train_track": "LA",
+        "eval_track": "LA"
+      }
+    },
+    "sls_df": {
+      "repo_path": "baselines/SLSforASVspoof-2021-DF",
+      "conda_prefix": "/remote-home/wangruiming/conda-env/sls",
+      "train": {
+        "enabled": true,
+        "devices": ["cuda:5"],
+        "seed": 1234,
+        "epochs": 15,
+        "batch_size": 14,
+        "learning_rate": 1e-6,
+        "weight_decay": 0.0001
+      },
+      "eval": {
+        "enabled": true,
+        "devices": ["cuda:5"],
+        "batch_size": 8
+      },
+      "assets": {
+        "xlsr_model_path": "baselines/xlsr2_300m.pt"
+      },
+      "adapter": {
+        "algo": 5,
+        "train_track": "LA",
+        "eval_track": "DF",
+        "audio_extension": "flac"
+      }
+    },
+    "safeear": {
+      "repo_path": "baselines/SafeEar",
+      "conda_prefix": "/remote-home/wangruiming/conda-env/safeear",
+      "train": {
+        "enabled": true,
+        "devices": ["cuda:6"],
+        "seed": 1234,
+        "epochs": 15,
+        "batch_size": 24,
+        "learning_rate": 1e-6,
+        "weight_decay": 0.0001
+      },
+      "eval": {
+        "enabled": true,
+        "devices": ["cuda:6"],
+        "batch_size": 24
+      },
+      "assets": {
+        "speechtokenizer_path": "baselines/SafeEar/model_zoos/SpeechTokenizer.pt",
+        "hubert_features_2019_root": "baselines/SafeEar/datas/datasets/ASVSpoof2019_Hubert_L9",
+        "hubert_features_2021_root": "baselines/SafeEar/datas/datasets/ASVSpoof2021_Hubert_L9"
+      },
+      "adapter": {
+        "template": "train21.yaml"
+      }
+    },
+    "nes2net": {
+      "repo_path": "baselines/Nes2Net_ASVspoof_ITW",
+      "conda_prefix": "/remote-home/wangruiming/conda-env/nes2net",
+      "train": {
+        "enabled": true,
+        "devices": ["cuda:7"],
+        "seed": 1234,
+        "epochs": 15,
+        "batch_size": 24,
+        "learning_rate": 1e-6,
+        "weight_decay": 0.0001
+      },
+      "eval": {
+        "enabled": true,
+        "devices": ["cuda:7"],
+        "batch_size": 16
+      },
+      "assets": {
+        "xlsr_model_path": "baselines/xlsr2_300m.pt"
+      },
+      "adapter": {
+        "model_name": "wav2vec2_Nes2Net_X",
+        "pool_func": "mean",
+        "Nes_ratio": [8, 8],
+        "SE_ratio": [1],
+        "eval_track": "DF",
+        "algo": 8
+      }
+    }
+  }
+}

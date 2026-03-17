@@ -1,0 +1,30 @@
+{
+  "input_manifest": "data/stage4_delivery_chain/manifests/delivered_manifest.csv",
+  "output_root": "data/ChainBench",
+  "dataset_name": "ChainBench",
+  "workers": 8,
+  "allow_partial_failures": true,
+  "overwrite_audio": false,
+  "ffprobe_sec": 30,
+  "validation": {
+    "min_duration_sec": 1.0,
+    "max_duration_sec": 30.0,
+    "sample_rate": 16000,
+    "channels": 1,
+    "codec_name": "pcm_s16le",
+    "clip_threshold": 0.999,
+    "max_abs_peak": 0.999,
+    "max_clipped_fraction": 0.0005,
+    "allow_nan": false,
+    "allow_inf": false,
+    "min_duration_ratio_to_parent": 0.85,
+    "max_duration_ratio_to_parent": 1.8
+  },
+  "coverage_chain_families": [
+    "direct",
+    "platform_like",
+    "telephony",
+    "simreplay",
+    "hybrid"
+  ]
+}
