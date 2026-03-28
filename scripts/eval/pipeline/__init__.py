@@ -2,6 +2,6 @@
 
 from __future__ import annotations
 
-from .orchestrator import run_all_baselines
+from .run import run_all_baselines
 
 __all__ = ["run_all_baselines"]

@@ -1,4 +1,4 @@
-"""Single-job execution helpers for the evaluation pipeline."""
+"""Single assigned-job execution helpers for the evaluation pipeline."""
 
 from __future__ import annotations
 
@@ -32,8 +32,6 @@ def job_config_with_device(
 ) -> dict[str, Any]:
     job_cfg = deepcopy(baseline_cfg)
     if baseline_cfg["train"]["enabled"] and not eval_only:
-        # Train-mode runtimes perform train+eval in one process, so keep the
-        # whole run pinned to a single configured execution slot.
         job_cfg["train"]["device"] = execution_device
         job_cfg["eval"]["device"] = execution_device
     elif baseline_cfg["eval"]["enabled"] and not train_only:
@@ -116,7 +114,6 @@ def run_training_phase(
 
     pipeline_state.start_phase(job, phase="train", log_path=run_dir / "train.log")
     if shared_key:
-        # Record expected inputs before launch so interrupted runs remain attributable.
         write_checkpoint_manifest(run_dir, shared_key)
 
     train_result = runner.train(prepared_view, run_dir)

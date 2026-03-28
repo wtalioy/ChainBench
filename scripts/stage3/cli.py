@@ -134,7 +134,7 @@ def main() -> int:
     (output_root / "jobs").mkdir(parents=True, exist_ok=True)
     (output_root / "results").mkdir(parents=True, exist_ok=True)
     (output_root / "logs").mkdir(parents=True, exist_ok=True)
-    materialize_generator_jobs(jobs_by_generator, generator_cfgs, output_root)
+    batch_paths_by_generator = materialize_generator_jobs(jobs_by_generator, generator_cfgs, output_root)
     plan_path = output_root / "jobs" / "stage3_job_plan.json"
     plan_path.write_text(
         json.dumps(
@@ -169,8 +169,7 @@ def main() -> int:
                     run_generator_batch,
                     generator_key,
                     generator_cfgs[generator_key],
-                    jobs,
-                    output_root,
+                    batch_paths_by_generator[generator_key],
                     workspace_root,
                     args.runner_log_level,
                     LOGGER,

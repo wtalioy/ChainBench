@@ -77,6 +77,11 @@ class ASVspoofBaselineRunner(BaselineRunner):
     def _runtime_extra_args(self) -> list[str]:
         return []
 
+    def _clear_score_artifacts(self, run_dir: Path) -> None:
+        for path in (self._scores_path(run_dir), run_dir / "scores.csv"):
+            if path.exists():
+                path.unlink()
+
     def _runtime_command(
         self,
         prepared_view: dict[str, Any],

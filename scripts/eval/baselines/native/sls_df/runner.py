@@ -26,6 +26,7 @@ class SlsDfRunner(ASVspoofBaselineRunner):
 
     def train(self, prepared_view: dict[str, str], run_dir: Path) -> BaselineRunResult:
         checkpoint_path = self._checkpoint_path(run_dir)
+        self._clear_score_artifacts(run_dir)
         command = self._runtime_command(
             prepared_view,
             run_dir,
@@ -50,8 +51,7 @@ class SlsDfRunner(ASVspoofBaselineRunner):
 
     def evaluate(self, prepared_view: dict[str, str], run_dir: Path, checkpoint: Path | None) -> BaselineRunResult:
         raw_output = self._scores_path(run_dir)
-        if raw_output.exists():
-            raw_output.unlink()
+        self._clear_score_artifacts(run_dir)
         checkpoint_path = checkpoint or self._checkpoint_path(run_dir)
         command = self._runtime_command(
             prepared_view,

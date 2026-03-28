@@ -19,13 +19,20 @@ from lib.logging import get_logger, setup_logging
 
 from .export import export_single_audio
 from .protocols import (
-    UNSEEN_CHAIN_CONFIG_SPLIT_FIELD,
-    UNSEEN_COMPOSITION_SPLIT_FIELD,
-    UNSEEN_ORDER_SPLIT_FIELD,
     annotate_rows,
     check_speaker_disjoint,
     summarize_parent_coverage,
-    summarize_task_splits,
+)
+from eval.tasks.structural_groups import (
+    OPERATOR_MULTISET_FIELD,
+    OPERATOR_SUBSTITUTION_DETAIL_FIELD,
+    OPERATOR_SUBSTITUTION_GROUP_FIELD,
+    ORDER_SWAP_GROUP_FIELD,
+    PARAMETER_PERTURBATION_AXIS_FIELD,
+    PARAMETER_PERTURBATION_GROUP_FIELD,
+    PATH_ENDPOINT_FIELD,
+    PATH_GROUP_FIELD,
+    PATH_STEP_FIELD,
 )
 from .validate import summarize_validation_rows, validate_single_row
 
@@ -37,15 +44,18 @@ RELEASE_METADATA_FIELD_ORDER = [
     # Identity and paths
     "sample_id",
     "parent_id",
-    "audio_path",
+    "file_name",
     "clean_parent_path",
     "trace_path",
     # Labels and evaluation splits
     "label",
     STANDARD_SPLIT_EXPORT_FIELD,
-    UNSEEN_COMPOSITION_SPLIT_FIELD,
-    UNSEEN_ORDER_SPLIT_FIELD,
-    UNSEEN_CHAIN_CONFIG_SPLIT_FIELD,
+    OPERATOR_SUBSTITUTION_GROUP_FIELD,
+    OPERATOR_SUBSTITUTION_DETAIL_FIELD,
+    PARAMETER_PERTURBATION_GROUP_FIELD,
+    PARAMETER_PERTURBATION_AXIS_FIELD,
+    ORDER_SWAP_GROUP_FIELD,
+    PATH_GROUP_FIELD,
     # Source/content metadata
     "language",
     "speaker_id",
@@ -63,7 +73,9 @@ RELEASE_METADATA_FIELD_ORDER = [
     "chain_template_id",
     "chain_variant_index",
     "operator_seq",
-    "chain_config",
+    OPERATOR_MULTISET_FIELD,
+    PATH_ENDPOINT_FIELD,
+    PATH_STEP_FIELD,
     "operator_params",
     "codec",
     "bitrate",
@@ -222,14 +234,17 @@ def build_release_metadata_rows(rows: list[dict[str, Any]]) -> list[dict[str, An
         metadata_row = {
             "sample_id": row.get("sample_id", ""),
             "parent_id": row.get("parent_id", ""),
-            "audio_path": row.get("audio_path", ""),
+            "file_name": row.get("audio_path", ""),
             "clean_parent_path": row.get("clean_parent_path", ""),
             "trace_path": row.get("trace_path", ""),
             "label": row.get("label", ""),
             STANDARD_SPLIT_EXPORT_FIELD: row.get("split", ""),
-            UNSEEN_COMPOSITION_SPLIT_FIELD: row.get(UNSEEN_COMPOSITION_SPLIT_FIELD, ""),
-            UNSEEN_ORDER_SPLIT_FIELD: row.get(UNSEEN_ORDER_SPLIT_FIELD, ""),
-            UNSEEN_CHAIN_CONFIG_SPLIT_FIELD: row.get(UNSEEN_CHAIN_CONFIG_SPLIT_FIELD, ""),
+            OPERATOR_SUBSTITUTION_GROUP_FIELD: row.get(OPERATOR_SUBSTITUTION_GROUP_FIELD, ""),
+            OPERATOR_SUBSTITUTION_DETAIL_FIELD: row.get(OPERATOR_SUBSTITUTION_DETAIL_FIELD, ""),
+            PARAMETER_PERTURBATION_GROUP_FIELD: row.get(PARAMETER_PERTURBATION_GROUP_FIELD, ""),
+            PARAMETER_PERTURBATION_AXIS_FIELD: row.get(PARAMETER_PERTURBATION_AXIS_FIELD, ""),
+            ORDER_SWAP_GROUP_FIELD: row.get(ORDER_SWAP_GROUP_FIELD, ""),
+            PATH_GROUP_FIELD: row.get(PATH_GROUP_FIELD, ""),
             "language": row.get("language", ""),
             "speaker_id": row.get("speaker_id", ""),
             "source_speaker_id": row.get("source_speaker_id", ""),
@@ -244,7 +259,9 @@ def build_release_metadata_rows(rows: list[dict[str, Any]]) -> list[dict[str, An
             "chain_template_id": row.get("chain_template_id", ""),
             "chain_variant_index": row.get("chain_variant_index", ""),
             "operator_seq": row.get("operator_seq", ""),
-            "chain_config": row.get("chain_config", "[]"),
+            OPERATOR_MULTISET_FIELD: row.get(OPERATOR_MULTISET_FIELD, ""),
+            PATH_ENDPOINT_FIELD: row.get(PATH_ENDPOINT_FIELD, ""),
+            PATH_STEP_FIELD: row.get(PATH_STEP_FIELD, ""),
             "operator_params": row.get("operator_params", ""),
             "codec": row.get("codec", ""),
             "bitrate": row.get("bitrate", ""),
@@ -269,6 +286,36 @@ def build_release_metadata_rows(rows: list[dict[str, Any]]) -> list[dict[str, An
             }
         )
     return metadata_rows
+
+
+def build_split_release_metadata_rows(metadata_rows: list[dict[str, Any]]) -> dict[str, list[dict[str, Any]]]:
+    split_rows: dict[str, list[dict[str, Any]]] = {}
+    for row in metadata_rows:
+        split_name = str(row.get(STANDARD_SPLIT_EXPORT_FIELD, "")).strip()
+        if not split_name:
+            continue
+        split_prefix = f"{split_name}/"
+        file_name = str(row.get("file_name", "")).strip()
+        if not file_name.startswith(split_prefix):
+            raise ValueError(f"Expected file_name to start with {split_prefix!r}, got {file_name!r}")
+        split_row = dict(row)
+        split_row["file_name"] = file_name[len(split_prefix) :]
+        split_rows.setdefault(split_name, []).append(split_row)
+    return split_rows
+
+
+def write_split_metadata_files(
+    dataset_root: Path,
+    metadata_rows: list[dict[str, Any]],
+    workspace_root: Path,
+) -> dict[str, str]:
+    split_metadata_rows = build_split_release_metadata_rows(metadata_rows)
+    split_metadata_paths: dict[str, str] = {}
+    for split_name, rows in split_metadata_rows.items():
+        split_metadata_path = dataset_root / split_name / "metadata.csv"
+        write_csv(split_metadata_path, rows, fieldnames=RELEASE_METADATA_FIELD_ORDER)
+        split_metadata_paths[split_name] = relative_to_workspace(split_metadata_path, workspace_root)
+    return split_metadata_paths
 
 
 def load_selected_rows(
@@ -492,8 +539,9 @@ def main() -> int:
 
     LOGGER.info("writing lean dataset metadata ...")
     metadata_rows = build_release_metadata_rows(annotated_rows)
-    metadata_path = manifest_root / "metadata.csv"
+    metadata_path = output_root / "metadata.csv"
     write_csv(metadata_path, metadata_rows, fieldnames=RELEASE_METADATA_FIELD_ORDER)
+    split_metadata_paths = write_split_metadata_files(output_root, metadata_rows, workspace_root)
 
     failures_path = manifest_root / "stage5_failures.json"
     write_json(failures_path, failures)
@@ -513,11 +561,11 @@ def main() -> int:
         "dataset_rows": len(annotated_rows),
         "failed_rows": len(failures),
         "metadata_path": relative_to_workspace(metadata_path, workspace_root),
+        "split_metadata_paths": split_metadata_paths,
         "failures_path": relative_to_workspace(failures_path, workspace_root),
         "status_counts": dict(counts),
         "speaker_disjoint_check": check_speaker_disjoint(annotated_rows),
         "counterfactual_parent_coverage": summarize_parent_coverage(annotated_rows, coverage_families),
-        "task_specific_splits": summarize_task_splits(annotated_rows),
         "duplicate_checks": summarize_duplicates(annotated_rows),
         "stats": summarize_validation_rows(annotated_rows),
         "stats_tables": stats_tables,

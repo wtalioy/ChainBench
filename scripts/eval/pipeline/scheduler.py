@@ -10,7 +10,7 @@ from lib.logging import get_logger
 from ..tasks import TaskPack
 from .checkpoints import shared_training_key
 from .models import AssignedJob, RunRecord
-from .runner import run_baseline
+from .job import run_baseline
 from .state import PipelineState
 
 LOGGER = get_logger("eval.pipeline")
@@ -111,12 +111,12 @@ def execute_assigned_jobs(
     pipeline_state: PipelineState,
 ) -> list[tuple[int, RunRecord]]:
     jobs_by_device = group_jobs_by_execution_device(assigned_jobs)
-    if pipeline_state.monitor is not None:
+    if pipeline_state.observer is not None:
         LOGGER.info(
             "scheduled %d baseline runs across %d execution device(s); live status: %s",
             len(assigned_jobs),
             len(jobs_by_device),
-            pipeline_state.monitor.status_path,
+            pipeline_state.observer.status_path,
         )
 
     if len(jobs_by_device) <= 1:

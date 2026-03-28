@@ -1,5 +1,5 @@
 """ChainBench-native AASIST baseline package."""
 
-from .runner import AasistRunner
+from .runner import AASISTLRunner, AASISTRunner
 
-__all__ = ["AasistRunner"]
+__all__ = ["AASISTRunner", "AASISTLRunner"]

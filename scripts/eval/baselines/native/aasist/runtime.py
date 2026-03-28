@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 import argparse
+import json
 import sys
 from pathlib import Path
+from typing import Any
 
 import torch
 
@@ -26,9 +28,21 @@ from ....native_runtime import (
 LOGGER = get_logger("eval.aasist.runtime")
 
 
+def _load_model_args(repo_path: Path, template_name: str) -> dict[str, Any]:
+    template_path = repo_path / "config" / template_name
+    if not template_path.exists():
+        raise FileNotFoundError(f"AASIST config template not found: {template_path}")
+    payload = json.loads(template_path.read_text(encoding="utf-8"))
+    model_config = payload.get("model_config")
+    if not isinstance(model_config, dict) or not model_config:
+        raise ValueError(f"AASIST config template missing model_config: {template_path}")
+    return dict(model_config)
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="ChainBench-native AASIST runtime")
     parser.add_argument("--repo-path", required=True)
+    parser.add_argument("--config-template", default="AASIST.conf")
     parser.add_argument("--mode", choices=("train", "eval"), required=True)
     parser.add_argument("--train-protocol", required=True)
     parser.add_argument("--dev-protocol", required=True)
@@ -73,15 +87,8 @@ def main() -> int:
     train_device = resolve_device(args.train_device)
     eval_device = resolve_device(args.eval_device)
     LOGGER.info("using train device %s and eval device %s", train_device, eval_device)
-    model_args = {
-        "architecture": "AASIST",
-        "nb_samp": 64600,
-        "first_conv": 128,
-        "filts": [70, [1, 32], [32, 32], [32, 64], [64, 64]],
-        "gat_dims": [64, 32],
-        "pool_ratios": [0.5, 0.7, 0.5, 0.5],
-        "temperatures": [2.0, 2.0, 100.0, 100.0],
-    }
+    model_args = _load_model_args(repo_path, args.config_template)
+    LOGGER.info("loaded model config from %s", repo_path / "config" / args.config_template)
     model = prepare_model_for_devices(
         Model(model_args),
         args.train_device if args.mode == "train" else args.eval_device,

@@ -2,7 +2,7 @@
   "input_manifest": "data/stage3_spoof_generation/manifests/clean_parent_manifest_all.csv",
   "output_root": "data/stage4_delivery_chain",
   "seed": 20260310,
-  "variants_per_parent": 1,
+  "variants_per_parent": 4,
   "workers": 32,
   "overwrite": false,
   "allow_partial_failures": true,
@@ -27,7 +27,7 @@
     },
     "platform_like": {
       "enabled": true,
-      "variants_per_parent": 2,
+      "variants_per_parent": 4,
       "templates": [
         {
           "template_id": "aac_single",
@@ -162,7 +162,7 @@
     },
     "telephony": {
       "enabled": true,
-      "variants_per_parent": 2,
+      "variants_per_parent": 4,
       "templates": [
         {
           "template_id": "nb_mulaw",
@@ -398,7 +398,13 @@
     },
     "simreplay": {
       "enabled": true,
-      "variants_per_parent": 2,
+      "variants_per_parent": 4,
+      "paired_group_probability": 1.0,
+      "paired_template_groups": [
+        {
+          "template_ids": ["rir_reencode", "reencode_rir"]
+        }
+      ],
       "templates": [
         {
           "template_id": "rir_only",
@@ -610,7 +616,16 @@
     },
     "hybrid": {
       "enabled": true,
-      "variants_per_parent": 2,
+      "variants_per_parent": 4,
+      "paired_group_probability": 1.0,
+      "paired_template_groups": [
+        {
+          "template_ids": ["rir_aac", "aac_rir"]
+        },
+        {
+          "template_ids": ["rir_reencode_plr", "reencode_rir_plr"]
+        }
+      ],
       "templates": [
         {
           "template_id": "opus_plr_rir",

@@ -1,4 +1,4 @@
-"""Live status tracking for the evaluation pipeline."""
+"""Live status and snapshot handling for the evaluation pipeline."""
 
 from __future__ import annotations
 
@@ -6,11 +6,13 @@ import threading
 import time
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 from lib.io import write_json
 from lib.logging import get_logger
 
+from ..metrics.reporting import compute_baseline_metrics, write_metrics_files
+from ..tasks import TaskPack
 from .models import AssignedJob, RunRecord
 
 LOGGER = get_logger("eval.pipeline")
@@ -190,3 +192,90 @@ class PipelineMonitor:
             self._update_progress_locked()
             self._write_snapshot_locked()
         LOGGER.error("evaluation pipeline failed: %s", message)
+
+
+class LiveResultsWriter:
+    def __init__(
+        self,
+        *,
+        output_root: Path,
+        packs: list[TaskPack],
+        total_jobs: int,
+        aggregate_metrics_fn: Callable[..., list[dict[str, Any]]],
+        build_label_map_fn: Callable[[list[dict[str, Any]]], dict[str, str]],
+        on_snapshot: Callable[[list[dict[str, Any]], list[dict[str, Any]]], None] | None = None,
+    ) -> None:
+        self.output_root = output_root
+        self.packs = packs
+        self.total_jobs = total_jobs
+        self.aggregate_metrics_fn = aggregate_metrics_fn
+        self.build_label_map_fn = build_label_map_fn
+        self.on_snapshot = on_snapshot
+        self.snapshot_path = output_root / "eval_results_live.json"
+        self._records_by_index: dict[int, RunRecord] = {}
+        self._lock = threading.Lock()
+
+    def record(self, index: int, record: RunRecord) -> None:
+        with self._lock:
+            self._records_by_index[index] = record
+            baseline_results = [
+                current_record.as_dict()
+                for _, current_record in sorted(self._records_by_index.items(), key=lambda item: item[0])
+            ]
+            baseline_metrics = compute_baseline_metrics(
+                self.output_root,
+                self.packs,
+                baseline_results,
+                aggregate_metrics_fn=self.aggregate_metrics_fn,
+                build_label_map_fn=self.build_label_map_fn,
+            )
+            write_metrics_files(self.output_root, baseline_metrics)
+            write_json(
+                self.snapshot_path,
+                {
+                    "generated_at_utc": utc_now_iso(),
+                    "total_jobs": self.total_jobs,
+                    "completed_jobs": len(self._records_by_index),
+                    "baseline_runs": baseline_results,
+                    "baseline_metrics": baseline_metrics,
+                },
+            )
+            if self.on_snapshot is not None:
+                self.on_snapshot(baseline_results, baseline_metrics)
+
+
+class PipelineObserver:
+    def __init__(
+        self,
+        *,
+        output_root: Path,
+        jobs: list[AssignedJob],
+        packs: list[TaskPack],
+        progress: Any | None,
+        aggregate_metrics_fn: Callable[..., list[dict[str, Any]]],
+        build_label_map_fn: Callable[[list[dict[str, Any]]], dict[str, str]],
+        on_snapshot: Callable[[list[dict[str, Any]], list[dict[str, Any]]], None] | None = None,
+    ) -> None:
+        self.monitor = PipelineMonitor(output_root, jobs, progress)
+        self.live_results = LiveResultsWriter(
+            output_root=output_root,
+            packs=packs,
+            total_jobs=len(jobs),
+            aggregate_metrics_fn=aggregate_metrics_fn,
+            build_label_map_fn=build_label_map_fn,
+            on_snapshot=on_snapshot,
+        )
+
+    @property
+    def status_path(self) -> Path:
+        return self.monitor.status_path
+
+    def start_phase(self, job: AssignedJob, *, phase: str, log_path: Path | None = None, note: str | None = None) -> None:
+        self.monitor.start_phase(job, phase=phase, log_path=log_path, note=note)
+
+    def finish(self, job: AssignedJob, record: RunRecord) -> None:
+        self.live_results.record(job.index, record)
+        self.monitor.finish(job, record)
+
+    def fail_pipeline(self, message: str) -> None:
+        self.monitor.fail_pipeline(message)

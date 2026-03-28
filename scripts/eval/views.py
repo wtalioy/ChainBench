@@ -130,7 +130,7 @@ def _link_split_audio(
     linked_rows: list[dict[str, str]] = []
     iterator = progress_iter(rows, total=total, desc=f"link {split_name}", unit="file", leave=False)
     for row in iterator:
-        src = dataset_root / row["audio_path"]
+        src = dataset_root / row["file_name"]
         dst = split_dir / f"{row['sample_id']}.{extension}"
         _safe_symlink(src, dst)
         linked_rows.append({**row, "linked_audio_path": str(dst)})

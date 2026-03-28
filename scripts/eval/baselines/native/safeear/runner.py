@@ -141,6 +141,11 @@ class SafeEarRunner(BaselineRunner):
     def _output_root(self, run_dir: Path) -> Path:
         return run_dir / "outputs"
 
+    def _clear_score_artifacts(self, run_dir: Path) -> None:
+        for path in (run_dir / "score.csv", run_dir / "scores.csv"):
+            if path.exists():
+                path.unlink()
+
     def _normalize_scores(self, run_dir: Path, raw_output: Path) -> Path | None:
         return write_normalized_scores(run_dir / "scores.csv", extract_csv_score_rows(raw_output)) if raw_output.exists() else None
 
@@ -173,7 +178,7 @@ class SafeEarRunner(BaselineRunner):
         phase_cfg = self.config[mode]
         trainer_device = _device_to_lightning_devices(phase_cfg["device"])
 
-        cfg["datamodule"]["batch_size"] = int(phase_cfg["batch_size"])
+        cfg["datamodule"]["batch_size"] = 1 if mode == "eval" else int(phase_cfg["batch_size"])
         cfg["datamodule"]["DataClass_dict"]["train_path"] = [
             prepared_view["train_tsv"],
             prepared_view["train_protocol"],
@@ -206,6 +211,7 @@ class SafeEarRunner(BaselineRunner):
     def train(self, prepared_view: dict[str, Any], run_dir: Path) -> BaselineRunResult:
         assets = self._resolve_assets(run_dir)
         self._ensure_hubert_features(prepared_view, run_dir, assets)
+        self._clear_score_artifacts(run_dir)
         train_config_path = self._build_config(prepared_view, run_dir, mode="train", assets=assets)
         eval_config_path = self._build_config(prepared_view, run_dir, mode="eval", assets=assets)
         raw_output = run_dir / "score.csv"
@@ -243,6 +249,7 @@ class SafeEarRunner(BaselineRunner):
     def evaluate(self, prepared_view: dict[str, Any], run_dir: Path, checkpoint: Path | None) -> BaselineRunResult:
         assets = self._resolve_assets(run_dir)
         self._ensure_hubert_features(prepared_view, run_dir, assets)
+        self._clear_score_artifacts(run_dir)
         config_path = self._build_config(prepared_view, run_dir, mode="eval", assets=assets)
         raw_output = run_dir / "score.csv"
         command = self._command_prefix() + [

@@ -1,21 +1,21 @@
 {
   "metadata_path": "data/ChainBench/metadata.csv",
   "dataset_root": "data/ChainBench",
-  "output_root": "outputs/eval",
+  "output_root": "outputs/eval_template_holdout",
   "tasks": [
-    "in_chain_detection",
-    "operator_substitution",
-    "parameter_perturbation",
-    "order_swap",
-    "delivery_robustness"
+    "in_chain_detection"
   ],
-  "sample_ratio": [
-    [0.02, 0.02, 1.0],
-    [0.02, 0.02, 1.0],
-    [0.02, 0.02, 1.0],
-    [0.02, 0.02, 1.0],
-    [0.02, 0.02, 1.0]
-  ],
+  "generalization": {
+    "protocol": "leave_one_template_out",
+    "scope": "per_family"
+  },
+  "sample_ratio": {
+    "in_chain_detection": [
+      0.02,
+      0.02,
+      1.0
+    ]
+  },
   "baselines": {
     "aasist": {
       "repo_path": "baselines/aasist",

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Callable
+from typing import Any, Callable
 
 from lib.logging import get_logger
 
@@ -12,10 +12,10 @@ from ..metrics import aggregate_run_metrics, build_label_map
 from ..progress import create_progress
 from ..tasks import TaskPack
 from .models import RunRecord
+from .observability import PipelineObserver
 from .scheduler import assign_jobs_to_devices, execute_assigned_jobs
-from .snapshots import ResultsSnapshotWriter, compute_baseline_metrics, write_metrics_files
 from .state import PipelineState
-from .status import PipelineMonitor
+from ..metrics.reporting import compute_baseline_metrics, write_metrics_files
 
 LOGGER = get_logger("eval.pipeline")
 
@@ -31,7 +31,14 @@ def run_all_baselines(
     train_only: bool,
     force_retrain: bool = False,
     on_snapshot: Callable[[list[dict[str, object]], list[dict[str, object]]], None] | None = None,
+    baseline_map: dict[str, Any] | None = None,
+    aggregate_metrics_fn: Callable[..., list[dict[str, Any]]] | None = None,
+    build_label_map_fn: Callable[[list[dict[str, Any]]], dict[str, str]] | None = None,
+    progress_factory: Callable[..., Any] | None = None,
 ) -> tuple[list[dict[str, object]], list[dict[str, object]], str | None]:
+    aggregate_metrics_fn = aggregate_metrics_fn or aggregate_run_metrics
+    build_label_map_fn = build_label_map_fn or build_label_map
+    progress_factory = progress_factory or create_progress
     records: list[RunRecord] = []
     baseline_error = None
     pipeline_state = PipelineState(
@@ -40,7 +47,7 @@ def run_all_baselines(
         eval_only=eval_only,
         train_only=train_only,
         force_retrain=force_retrain,
-        baseline_map=BASELINE_MAP,
+        baseline_map=baseline_map or BASELINE_MAP,
     )
     try:
         assigned_jobs = assign_jobs_to_devices(
@@ -50,14 +57,14 @@ def run_all_baselines(
             eval_only=eval_only,
             train_only=train_only,
         )
-        pipeline_state.progress = create_progress(total=len(assigned_jobs), desc="eval pipeline", unit="run")
-        pipeline_state.monitor = PipelineMonitor(output_root, assigned_jobs, pipeline_state.progress)
-        pipeline_state.results_snapshot_writer = ResultsSnapshotWriter(
+        pipeline_state.progress = progress_factory(total=len(assigned_jobs), desc="eval pipeline", unit="run")
+        pipeline_state.observer = PipelineObserver(
             output_root=output_root,
+            jobs=assigned_jobs,
             packs=packs,
-            total_jobs=len(assigned_jobs),
-            aggregate_metrics_fn=aggregate_run_metrics,
-            build_label_map_fn=build_label_map,
+            progress=pipeline_state.progress,
+            aggregate_metrics_fn=aggregate_metrics_fn,
+            build_label_map_fn=build_label_map_fn,
             on_snapshot=on_snapshot,
         )
         indexed_records = execute_assigned_jobs(
@@ -69,8 +76,8 @@ def run_all_baselines(
     except Exception as exc:
         LOGGER.exception("baseline run failed: %s", exc)
         baseline_error = str(exc)
-        if pipeline_state.monitor is not None:
-            pipeline_state.monitor.fail_pipeline(str(exc))
+        if pipeline_state.observer is not None:
+            pipeline_state.observer.fail_pipeline(str(exc))
     finally:
         if pipeline_state.progress is not None:
             pipeline_state.progress.close()
@@ -80,8 +87,8 @@ def run_all_baselines(
         output_root,
         packs,
         baseline_results,
-        aggregate_metrics_fn=aggregate_run_metrics,
-        build_label_map_fn=build_label_map,
+        aggregate_metrics_fn=aggregate_metrics_fn,
+        build_label_map_fn=build_label_map_fn,
     )
     write_metrics_files(output_root, baseline_metrics)
     return baseline_results, baseline_metrics, baseline_error

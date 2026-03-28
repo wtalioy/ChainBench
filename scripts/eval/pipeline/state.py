@@ -30,8 +30,7 @@ class PipelineState:
     force_retrain: bool
     baseline_map: dict[str, Any]
     progress: Any | None = None
-    monitor: Any | None = None
-    results_snapshot_writer: Any | None = None
+    observer: Any | None = None
     training_cache: dict[str, Path] = field(default_factory=dict)
     cache_lock: threading.Lock = field(default_factory=threading.Lock)
     view_locks: dict[str, threading.Lock] = field(default_factory=dict)
@@ -45,14 +44,12 @@ class PipelineState:
         log_path: Path | None = None,
         note: str | None = None,
     ) -> None:
-        if self.monitor is not None and job is not None:
-            self.monitor.start_phase(job, phase=phase, log_path=log_path, note=note)
+        if self.observer is not None and job is not None:
+            self.observer.start_phase(job, phase=phase, log_path=log_path, note=note)
 
     def finish_record(self, job: AssignedJob | None, record: RunRecord) -> RunRecord:
-        if self.results_snapshot_writer is not None and job is not None:
-            self.results_snapshot_writer.record(job.index, record)
-        if self.monitor is not None and job is not None:
-            self.monitor.finish(job, record)
+        if self.observer is not None and job is not None:
+            self.observer.finish(job, record)
             return record
         if self.progress is not None:
             self.progress.update(1)
