@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ChainBench-ADD: A Delivery-Aware Benchmark for Audio Deepfake Detection</title>
-<meta name="description" content="ChainBench-ADD is a delivery-aware benchmark for audio deepfake detection containing 941,201 waveforms across five delivery families and five protocol-aware tasks.">
+<title>ChainBench-ADD: A Delivery-Aware Dataset and Benchmark for Audio Deepfake Detection</title>
+<meta name="description" content="ChainBench-ADD is a delivery-aware dataset and benchmark for audio deepfake detection containing 941,201 waveforms across five delivery families and five protocol-aware tasks.">
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -219,8 +219,8 @@ footer .footer-copy { font-size: 0.8rem; opacity: 0.6; }
 <!-- HERO -->
 <section class="hero" id="top">
 <div class="container">
-  <h1>ChainBench-ADD: A Delivery-Aware Benchmark for Audio Deepfake Detection</h1>
-  <div class="venue">Under Review at ACM Multimedia 2026</div>
+  <h1>ChainBench-ADD: A Delivery-Aware Dataset and Benchmark for Audio Deepfake Detection</h1>
+  <div class="venue">ACM Multimedia 2026 (ACM MM '26) &middot; November 10&ndash;14, Rio de Janeiro, Brazil</div>
   <div class="actions">
     <a href="https://github.com/wtalioy/ChainBench" target="_blank">
       <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
@@ -239,7 +239,7 @@ footer .footer-copy { font-size: 0.8rem; opacity: 0.6; }
 <div class="container">
   <div class="section-label">Abstract</div>
   <p class="abstract-text">
-    Current audio deepfake benchmarks mainly control the generation side of the problem, while realistic misuse unfolds along delivery chains such as platform re-encoding, telephony transmission, and replay-like capture that can alter forensic cues after synthesis. We introduce <strong>ChainBench-ADD</strong>, a delivery-aware benchmark that models post-generation delivery as a structured evaluation dimension through <span class="hl">delivery families</span>, <span class="hl">ordered templates</span>, <span class="hl">reusable operators</span>, and <span class="hl">realized chains</span>. Built on a matched-parent design linking each delivered sample to a clean bona fide or spoof parent, ChainBench-ADD enables controlled analysis under fixed transcript and speaker conditions. The benchmark contains <span class="hl">941,201 waveforms</span> derived from <span class="hl">55,813 parents</span> and supports <span class="hl">five protocol-aware tasks</span>: in-chain detection, operator substitution, parameter perturbation, order swap, and lineage-based robustness. Benchmarking representative detectors shows that realistic delivery remains a substantial source of difficulty, making ChainBench-ADD a useful testbed for delivery-aware audio deepfake detection.
+    Existing audio deepfake benchmarks mainly emphasize the generation side, while real-world misuse often involves post-generation delivery such as platform re-encoding, telephony transmission, and replay-like recapture. We introduce <strong>ChainBench-ADD</strong>, a delivery-aware dataset and benchmark that reformulates post-generation delivery as a structured evaluation dimension rather than a set of isolated perturbations. ChainBench-ADD organizes delivery into <span class="hl">five families</span> through <span class="hl">reusable operators</span>, <span class="hl">ordered templates</span>, and <span class="hl">realized chains</span>, and adopts a matched-parent design that links each delivered sample to a clean bona fide or spoof parent under fixed transcript and speaker conditions. The current release contains <span class="hl">941,201 waveforms</span> derived from <span class="hl">55,813 parents</span> and supports <span class="hl">five protocol-aware tasks</span>: in-chain detection, operator substitution, parameter perturbation, order swap, and lineage-based robustness. Experiments with representative detectors show that realistic delivery remains a substantial source of difficulty, making ChainBench-ADD a useful resource for realistic, interpretable, and reproducible audio deepfake evaluation.
   </p>
 </div>
 </section>
@@ -251,9 +251,9 @@ footer .footer-copy { font-size: 0.8rem; opacity: 0.6; }
   <h2>How ChainBench-ADD Works</h2>
   <figure class="overview-fig">
     <img src="overview_figure.png" alt="Overview of ChainBench-ADD showing matched-parent design, five structured delivery families, and protocol-aware evaluation tasks">
-    <figcaption><strong>Figure 1.</strong> Overview of ChainBench-ADD. (A) Each delivered sample is linked to a matched bona fide or spoof parent. (B) Post-generation delivery is organized into five families through reusable operators and ordered templates. (C) The benchmark supports in-chain detection, matched local edits, and lineage robustness evaluation.</figcaption>
+    <figcaption><strong>Figure 1.</strong> Overview of ChainBench-ADD. Prior work mainly focus on generation, whereas real misuse typically involves post-generation delivery such as platform re-encoding. ChainBench-ADD models these delivery chains in a structured way and enables controlled evaluation via matched-parent design and protocol-aware evaluation.</figcaption>
   </figure>
-  <p>ChainBench-ADD represents post-generation delivery as a hierarchy rather than a flat list of perturbations. A <strong>delivery family</strong> defines the coarse scenario (e.g., platform redistribution vs. telephony call). A <strong>template</strong> defines an ordered route pattern within that scenario. A <strong>variant</strong> specifies its parameterization, and a <strong>delivery chain</strong> is the realized path applied to one parent sample. This separation supports analysis at every level&mdash;from broad scenario difficulty down to path-wise robustness under accumulated edits.</p>
+  <p>ChainBench-ADD represents post-generation delivery as a hierarchy rather than a flat list of perturbations. In practice, forged audio is rarely altered by a single isolated distortion&mdash;instead, it reaches listeners through broader delivery scenarios, recurring route patterns, local mechanisms, and realized end-to-end paths. A <strong>delivery family</strong> defines the coarse scenario (e.g., platform redistribution vs. telephony call). A <strong>template</strong> defines an ordered route pattern within that scenario. A <strong>variant</strong> specifies its parameterization, and a <strong>delivery chain</strong> is the realized path applied to one parent sample. This separation enables analysis at every level: scenario difficulty, generalization to unseen route patterns, sensitivity to specific operators, and path-wise robustness under accumulated edits.</p>
 </div>
 </section>
 
@@ -432,6 +432,8 @@ footer .footer-copy { font-size: 0.8rem; opacity: 0.6; }
     <div class="stat-item"><div class="stat-num" data-target="2">0</div><div class="stat-label">Languages</div></div>
     <div class="stat-item"><div class="stat-num" data-target="5">0</div><div class="stat-label">Delivery Families</div></div>
     <div class="stat-item"><div class="stat-num" data-target="33">0</div><div class="stat-label">Templates</div></div>
+    <div class="stat-item"><div class="stat-num" data-target="26">0</div><div class="stat-label">Operator Sequences</div></div>
+    <div class="stat-item"><div class="stat-num" data-target="6">0</div><div class="stat-label">TTS Generators</div></div>
   </div>
 
   <div class="chart-grid">
@@ -460,33 +462,33 @@ footer .footer-copy { font-size: 0.8rem; opacity: 0.6; }
 <div class="container">
   <div class="section-label">Benchmark Tasks</div>
   <h2>Five Protocol-Aware Evaluation Tasks</h2>
-  <p>All tasks are reconstructed from a shared manifest rather than manually curated subsets, together with a leave-one-template-out protocol for cross-template generalization.</p>
+  <p>ChainBench-ADD is released not only as a dataset, but as a metadata-driven benchmark. It supports five core tasks reconstructed from the shared manifest rather than manually curated subsets, together with a leave-one-template-out evaluation protocol for cross-template generalization.</p>
 
   <div class="task-grid">
     <div class="task-card">
       <h4>1. In-Chain Detection</h4>
       <div class="task-metric">Metric: EER (%) per family</div>
-      <p>Bona fide vs. spoof classification within each delivery family. Measures scenario-level difficulty.</p>
+      <p>Bona fide vs. spoof classification separately within each delivery family. Measures scenario-level difficulty.</p>
     </div>
     <div class="task-card">
       <h4>2. Operator Substitution</h4>
       <div class="task-metric">Metrics: Pair Consistency, Both-Correct, NSD</div>
-      <p>Matched pairs differing by one operator. Tests whether changing operator identity breaks the detector.</p>
+      <p>Matched pairs differing by one operator identity, keeping label and surrounding chain context fixed.</p>
     </div>
     <div class="task-card">
       <h4>3. Parameter Perturbation</h4>
       <div class="task-metric">Metrics: Pair Consistency, Both-Correct, NSD</div>
-      <p>Matched pairs differing by one parameter within a fixed operator. Probes within-operator tolerance.</p>
+      <p>Matched pairs differing by one parameter of a fixed operator, keeping label and chain context fixed.</p>
     </div>
     <div class="task-card">
       <h4>4. Order Swap</h4>
       <div class="task-metric">Metrics: Pair Consistency, Both-Correct, NSD</div>
-      <p>Matched pairs differing by one adjacent operator swap. Reveals whether local reordering induces consistent-but-wrong predictions.</p>
+      <p>Matched pairs exchanging one adjacent operator pair. Reveals whether local reordering preserves a model's decision without preserving correctness.</p>
     </div>
     <div class="task-card">
       <h4>5. Delivery Robustness</h4>
       <div class="task-metric">Metrics: C-FFD, R<sub>k</sub>, AURC-chain</div>
-      <p>Lineage-based evaluation along realistic delivery paths. Tests whether correct decisions persist as edits accumulate.</p>
+      <p>Evaluates whether correct decisions persist along lineage paths whose samples share the same parent utterance, delivery family, and ground-truth label.</p>
     </div>
     <div class="task-card" style="border-left-color:var(--teal);">
       <h4>+ Leave-One-Template-Out</h4>
@@ -502,10 +504,10 @@ footer .footer-copy { font-size: 0.8rem; opacity: 0.6; }
 <div class="container">
   <div class="section-label">Experiments</div>
   <h2>Baseline Results</h2>
-  <p>Five representative detectors are benchmarked: AASIST, AASIST-L, XLS-R+SLS, SafeEar, and Nes2Net, covering graph-based, lightweight, self-supervised, communication-aware, and efficient detector families.</p>
+  <p>We evaluate five representative baselines: AASIST, AASIST-L, XLS-R+SLS, SafeEar, and Nes2Net. Together, they cover graph-based anti-spoofing, lightweight anti-spoofing, self-supervised speech representations, communication-aware modeling, and recent efficient detector design. Our goal is not to exhaust the detector literature, but to test whether the benchmark reveals delivery-conditioned patterns that are consistent across heterogeneous model families.</p>
 
   <h3>In-Chain Detection EER (%) by Delivery Family</h3>
-  <div class="callout"><strong>Key finding:</strong> Detection difficulty varies systematically with the delivery family. Simulated replay and hybrid are consistently the hardest conditions across all baselines.</div>
+  <div class="callout"><strong>Key finding:</strong> Delivery family strongly affects detection difficulty. Averaged across baselines, <em>direct</em> is the easiest condition (14.80 EER), followed by <em>platform-like</em> (19.12) and <em>telephony</em> (24.81), whereas <em>simulated replay</em> (31.77) and <em>hybrid</em> (31.91) are consistently more difficult.</div>
   <div class="table-wrap">
   <table>
     <thead><tr><th>Model</th><th>Direct</th><th>Platform</th><th>Telephony</th><th>SimReplay</th><th>Hybrid</th><th>Macro</th></tr></thead>
@@ -520,7 +522,7 @@ footer .footer-copy { font-size: 0.8rem; opacity: 0.6; }
   </div>
 
   <h3>Leave-One-Template-Out EER (%)</h3>
-  <div class="callout"><strong>Key finding:</strong> The delivery-family difficulty ordering persists under unseen templates, confirming that family-level cues transfer beyond specific template memorization.</div>
+  <div class="callout"><strong>Key finding:</strong> The delivery-family ordering persists under unseen templates. <em>Platform-like</em> remains the easiest family, <em>telephony</em> remains intermediate, and <em>simulated replay</em>/<em>hybrid</em> remain the most difficult, suggesting that family-level behavior transfers to unseen delivery realizations.</div>
   <div class="table-wrap">
   <table>
     <thead><tr><th>Model</th><th>Platform</th><th>Telephony</th><th>SimReplay</th><th>Hybrid</th><th>Macro</th></tr></thead>
@@ -535,7 +537,7 @@ footer .footer-copy { font-size: 0.8rem; opacity: 0.6; }
   </div>
 
   <h3>Matched-Pair Robustness</h3>
-  <div class="callout"><strong>Key finding:</strong> Operator substitution is the most disruptive intervention. Order swap exposes a subtle weakness: high consistency can mask consistently wrong predictions, especially for weaker models.</div>
+  <div class="callout"><strong>Key finding:</strong> Operator substitution is the most disruptive intervention overall, yielding the lowest both-correct rate and largest NSD. Order swap has the highest pair consistency, yet its both-correct rate remains well below&mdash;the gap is largest for AASIST, AASIST-L, and SafeEar, suggesting that local reordering often preserves a model's decision without preserving correctness.</div>
   <div class="table-wrap">
   <table>
     <thead>
@@ -562,7 +564,7 @@ footer .footer-copy { font-size: 0.8rem; opacity: 0.6; }
   </div>
 
   <h3>Lineage-Level Delivery Robustness</h3>
-  <div class="callout"><strong>Key finding:</strong> Although XLS-R+SLS and Nes2Net are similarly strong under isolated interventions, Nes2Net is consistently better in C-FFD and AURC-chain, indicating more persistent correctness as delivery edits accumulate.</div>
+  <div class="callout"><strong>Key finding:</strong> Although XLS-R+SLS and Nes2Net are similarly strong under isolated interventions, Nes2Net is consistently better in C-FFD, AURC-chain, and all $R_k$ values, suggesting more persistent correctness as delivery edits accumulate. Most newly induced errors appear early: the largest drop is from $R_0$ to $R_1$, after which curves flatten.</div>
   <div class="table-wrap">
   <table>
     <thead><tr><th>Model</th><th>C-FFD</th><th>AURC-chain</th><th>R<sub>0</sub></th><th>R<sub>1</sub></th><th>R<sub>2</sub></th><th>R<sub>3</sub></th></tr></thead>
@@ -590,8 +592,8 @@ footer .footer-copy { font-size: 0.8rem; opacity: 0.6; }
     <div class="accordion-body">
       <div class="accordion-inner paper-prose">
         <h4>Family-Level Rendering Logic</h4>
-        <p>For each parent utterance, the renderer first selects a chain family, then samples a concrete template from that family, and finally instantiates the template-level operators from fixed parameter pools. The direct family contributes a single identity control child, whereas each non-direct family contributes four rendered children. Within a family, template identifiers are deterministically shuffled per parent and sampled without replacement.</p>
-        <p>For paired templates, one canonical member of the pair is concretized first and its realized operators are then reordered to form the paired counterpart, so that the two children differ only in local order while sharing the same sampled parameters.</p>
+        <p>For each parent utterance, the renderer first selects a delivery family, then samples a concrete template from that family, and finally instantiates the template-level operators from fixed parameter pools. The direct family contributes a single identity-control child, whereas each non-direct family contributes four rendered children. Within a family, template identifiers are deterministically shuffled per parent and sampled without replacement.</p>
+        <p>For paired templates, one canonical member of the pair is instantiated first and its realized operators are then reordered to form the paired counterpart, so that the two children differ only in local order while sharing the same sampled parameters.</p>
 
         <div class="table-wrap">
         <table>
@@ -724,7 +726,7 @@ footer .footer-copy { font-size: 0.8rem; opacity: 0.6; }
     <button class="accordion-btn" onclick="toggleAccordion(this)">E. Matched-Parent Drift Validation</button>
     <div class="accordion-body">
       <div class="accordion-inner paper-prose">
-        <p style="text-indent:0">On the 141,811-sample test split derived from 8,407 parents, we compare each delivered child with its clean parent using off-the-shelf ASR and speaker-embedding backends. Overall: mean &Delta;WER = 0.061, mean &Delta;CER = 0.043, mean speaker cosine = 0.941, mean duration ratio = 1.056, mean |&Delta;RMS| = 2.334 dB.</p>
+        <p style="text-indent:0">We validate the core matched-parent assumption: delivery rendering should alter surface acoustics without materially changing utterance content or speaker identity. On the 141,811-sample test split derived from 8,407 parents, we compare each delivered child with its clean parent using off-the-shelf ASR and speaker-embedding backends. Overall: mean &Delta;WER = 0.061, mean &Delta;CER = 0.043, mean speaker cosine = 0.941, mean duration ratio = 1.056, mean |&Delta;RMS| = 2.334 dB.</p>
         <div class="table-wrap">
         <table>
           <thead><tr><th>Family</th><th>&Delta;WER</th><th>&Delta;CER</th><th>Speaker cos.</th><th>Dur. ratio</th><th>|&Delta;RMS|</th></tr></thead>
@@ -737,7 +739,7 @@ footer .footer-copy { font-size: 0.8rem; opacity: 0.6; }
           </tbody>
         </table>
         </div>
-        <p>These results support the benchmark design: delivery transforms are substantial enough to create a meaningful robustness challenge while preserving the matched-parent structure needed for controlled evaluation.</p>
+        <p>The effect is family-dependent: <em>platform-like</em> remains closest to the parent, <em>telephony</em> introduces moderate degradation, and <em>simulated replay</em> and <em>hybrid</em> induce the largest shifts. These results support the benchmark design: delivery transforms are strong enough to create a meaningful robustness challenge while still preserving the matched-parent structure required for controlled evaluation.</p>
       </div>
     </div>
   </div>
@@ -748,26 +750,26 @@ footer .footer-copy { font-size: 0.8rem; opacity: 0.6; }
     <div class="accordion-body">
       <div class="accordion-inner paper-prose">
         <h4>Notation and Thresholding</h4>
-        <p style="text-indent:0">Let each sample have score $s_i \in \mathbb{R}$ and binary label $y_i \in \{0,1\}$ ($y_i=1$ for bona fide). Scores are converted to hard decisions by $\hat{y}_i = \mathbb{I}[s_i \ge \tau_{\text{pair}}]$, where $\tau_{\text{pair}} = \tau_{\text{EER}}$ if both classes are present, and $0.5$ otherwise.</p>
+        <p style="text-indent:0">Let each sample have score $s_i \in \mathbb{R}$ and binary label $y_i \in \{0,1\}$, where $y_i=1$ denotes bona fide speech and $y_i=0$ denotes spoofed speech. Larger scores indicate stronger bona fide evidence. Scores are converted to hard decisions by $\hat{y}_i = \mathbb{I}[s_i \ge \tau_{\text{pair}}]$, where $\tau_{\text{pair}} = \tau_{\text{EER}}$ if both classes are present, and $0.5$ otherwise.</p>
 
         <h4>Matched-Pair Metrics</h4>
         <p style="text-indent:0">For matched pairs $\mathcal{P} = \{(i_m, j_m)\}_{m=1}^{M}$ sharing the same label and differing only in the targeted intervention:</p>
-        <p style="text-indent:0"><strong>Pair Consistency Rate (PCR):</strong></p>
+        <p style="text-indent:0"><strong>Pair Consistency Rate (PCR):</strong> Measures whether the detector preserves its binary decision under the controlled local edit, regardless of whether that decision is correct.</p>
         <p style="text-indent:0">$$\text{PCR} = \frac{1}{M}\sum_{m=1}^{M}\mathbb{I}[\hat{y}_{i_m} = \hat{y}_{j_m}]$$</p>
-        <p style="text-indent:0"><strong>Pair Joint Accuracy (PJA):</strong></p>
+        <p style="text-indent:0"><strong>Pair Joint Accuracy (PJA):</strong> Separates stable-and-correct behavior from stable-but-wrong behavior by requiring both members of the pair to be classified correctly.</p>
         <p style="text-indent:0">$$\text{PJA} = \frac{1}{M}\sum_{m=1}^{M}\mathbb{I}[\hat{y}_{i_m} = y_{i_m} \;\land\; \hat{y}_{j_m} = y_{j_m}]$$</p>
-        <p style="text-indent:0"><strong>Mean Normalized Score Drift (MNSD):</strong> Let $\text{IQR}(S) = Q_{0.75}(S) - Q_{0.25}(S)$. Then:</p>
+        <p style="text-indent:0"><strong>Mean Normalized Score Drift (MNSD):</strong> Captures score-level sensitivity even when the hard decision is preserved. Let $\text{IQR}(S) = Q_{0.75}(S) - Q_{0.25}(S)$. Then:</p>
         <p style="text-indent:0">$$\text{MNSD} = \frac{1}{\max(\text{IQR}(S),\, 10^{-12})} \cdot \frac{1}{M}\sum_{m=1}^{M}|s_{i_m} - s_{j_m}|$$</p>
-        <p style="text-indent:0"><strong>Symmetric Misclassification Risk (SMR):</strong> $\text{SMR} = \frac{1}{M}\sum_{m=1}^{M}\frac{\ell_{i_m}+\ell_{j_m}}{2}$, where $\ell_i = \mathbb{I}[\hat{y}_i \neq y_i]$.</p>
+        <p style="text-indent:0"><strong>Symmetric Misclassification Risk (SMR, auxiliary):</strong> Summarizes the average misclassification burden within a matched pair. $\text{SMR} = \frac{1}{M}\sum_{m=1}^{M}\frac{\ell_{i_m}+\ell_{j_m}}{2}$, where $\ell_i = \mathbb{I}[\hat{y}_i \neq y_i]$.</p>
 
         <h4>Delivery-Lineage Metrics</h4>
-        <p style="text-indent:0">A lineage groups samples sharing the same parent, family, and label. Distances are defined on a lineage graph where edges connect realizations differing by one atomic delivery edit.</p>
-        <p style="text-indent:0"><strong>Censored First-Failure Distance (C-FFD):</strong></p>
+        <p style="text-indent:0">A delivery lineage groups all rendered samples that share the same parent utterance, delivery family, and binary label. The reference node is the shortest observed signature realization. Distances are defined on a lineage graph where undirected edges connect realizations differing by exactly one atomic delivery edit.</p>
+        <p style="text-indent:0"><strong>Censored First-Failure Distance (C-FFD):</strong> C-FFD increases when correct behavior persists farther from the reference node along the lineage graph.</p>
         <p style="text-indent:0">$$\tilde{\rho}_g = \begin{cases}\rho_g, & \text{if lineage } g \text{ has at least one failure},\\ D_{\max}+1, & \text{otherwise}\end{cases}$$</p>
         <p style="text-indent:0">$$\text{C-FFD} = \frac{1}{|\mathcal{G}|}\sum_{g \in \mathcal{G}}\tilde{\rho}_g$$</p>
         <p style="text-indent:0"><strong>Robust-at-Distance $R_k$:</strong></p>
         <p style="text-indent:0">$$R_k = \frac{1}{|\mathcal{G}|}\sum_{g \in \mathcal{G}}\mathbb{I}\!\left[\forall v \in g,\; d_g(v) \le k \Rightarrow c(v)=1\right]$$</p>
-        <p style="text-indent:0"><strong>AURC-chain:</strong></p>
+        <p style="text-indent:0"><strong>AURC-chain:</strong> Compresses the full robustness profile into a single scalar; increases when correctness is maintained more consistently under progressively larger delivery edits.</p>
         <p style="text-indent:0">$$\text{AURC-chain} = \frac{1}{D_{\max}+1}\sum_{k=0}^{D_{\max}} R_k$$</p>
       </div>
     </div>
