@@ -1,0 +1,12 @@
+[submodule "baselines/Nes2Net_ASVspoof_ITW"]
+	path = baselines/Nes2Net_ASVspoof_ITW
+	url = https://github.com/Liu-Tianchi/Nes2Net_ASVspoof_ITW.git
+[submodule "baselines/aasist"]
+	path = baselines/aasist
+	url = https://github.com/clovaai/aasist.git
+[submodule "baselines/SLSforASVspoof-2021-DF"]
+	path = baselines/SLSforASVspoof-2021-DF
+	url = https://github.com/QiShanZhang/SLSforASVspoof-2021-DF.git
+[submodule "baselines/SafeEar"]
+	path = baselines/SafeEar
+	url = https://github.com/wtalioy/SafeEar.git
