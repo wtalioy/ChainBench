@@ -1,0 +1,383 @@
+\appendix
+
+\section{Delivery-chain renderer specification}
+\label{app:renderer_spec}
+
+We summarize the released renderer at four levels: family-level sampling policy, template inventory, fixed parameter pools, and waveform-level operator realization. Unless noted otherwise, the appendix tables are authoritative for the exact configuration used to build the benchmark package in this paper. The operator summary in the main text is intentionally scenario-level; when it is less specific than the appendix, the appendix should be read as the exact release description.
+
+\subsection{Family-level rendering logic}
+
+For each parent utterance, the renderer first selects a delivery family, then samples a concrete template from that family, and finally instantiates the template-level operators from fixed parameter pools. The direct family contributes a single identity-control child, whereas each non-direct family contributes four rendered children. Within a family, template identifiers are deterministically shuffled per parent and sampled without replacement. For paired templates, one canonical member of the pair is instantiated first and its realized operators are then reordered to form the paired counterpart, so that the two children differ only in local order while sharing the same sampled parameters.
+
+\begin{table*}[t]
+\caption{Family-level rendering policy in the released renderer.}
+\label{tab:appendix_family_policy}
+\centering
+\small
+\setlength{\tabcolsep}{5pt}
+\renewcommand{\arraystretch}{1.10}
+\begin{tabular}{@{}p{0.14\textwidth}p{0.10\textwidth}p{0.14\textwidth}p{0.42\textwidth}@{}}
+\toprule
+\textbf{Family} & \textbf{Templates} & \textbf{Children / parent} & \textbf{Sampling rule} \\
+\midrule
+Direct & 1 & 1 & Identity control only. \\
+Platform-like & 6 & 4 & Sample without replacement; no paired-template forcing. \\
+Telephony & 10 & 4 & Sample without replacement; no paired-template forcing. \\
+Simulated replay & 7 & 4 & One paired group may be emitted first; otherwise sample without replacement. \\
+Hybrid & 9 & 4 & One paired group may be emitted first; otherwise sample without replacement. \\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+A further detail concerns re-encoding. In same mode, the re-encode operator is forced to use the most recent codec already realized earlier in the chain. In cross mode, it is forced to differ from that codec and is sampled from \{AAC, Opus\}. If no earlier codec exists, the renderer falls back to a family-specific default: AAC for simulated replay and Opus for the relevant hybrid templates. In addition, whenever the realized codec is GSM, the encoding sample rate is fixed to 8~kHz and decoding also proceeds from 8~kHz.
+
+\subsection{Template inventory and parameter pools}
+
+The configuration used here contains 33 templates, which realize 26 distinct ordered operator sequences because several templates intentionally keep the same operator multiset while changing only local order. Table~\ref{tab:appendix_templates} gives the exact family--template--operator inventory used in the release. In this inventory, call\_path appears only in the three telephony session templates (session\_nb\_mulaw, session\_nb\_gsm, and session\_wb\_opus), whereas reencode appears in platform-like, simulated replay, and hybrid, but not telephony.
+
+\begin{table*}[t]
+\caption{Template inventory as ordered operator blueprints before parameter instantiation.}
+\label{tab:appendix_templates}
+\centering
+\footnotesize
+\setlength{\tabcolsep}{2pt}
+\renewcommand{\arraystretch}{1.04}
+\begin{tabular}{@{}p{0.11\textwidth}p{0.18\textwidth}p{0.27\textwidth}@{}}
+\toprule
+\textbf{Family} & \textbf{Template ID} & \textbf{Ordered operator sequence} \\
+\midrule
+Direct & direct\_clean & Identity chain with no operator. \\
+\midrule
+\multirow[t]{6}{*}{Platform-like} & aac\_single & codec \\
+& opus\_single & codec \\
+& aac\_reencode & codec $\rightarrow$ reencode \\
+& opus\_reencode & codec $\rightarrow$ reencode \\
+& aac\_resample\_reencode & codec $\rightarrow$ resample $\rightarrow$ reencode \\
+& resample\_opus & resample $\rightarrow$ codec \\
+\midrule
+\multirow[t]{10}{*}{Telephony} & nb\_mulaw & bandlimit $\rightarrow$ codec \\
+& nb\_gsm & bandlimit $\rightarrow$ codec \\
+& wb\_opus & bandlimit $\rightarrow$ codec \\
+& nb\_mulaw\_plr & bandlimit $\rightarrow$ codec $\rightarrow$ packet\_loss \\
+& nb\_resample\_mulaw\_plr & resample $\rightarrow$ bandlimit $\rightarrow$ codec $\rightarrow$ packet\_loss \\
+& wb\_resample\_opus\_plr & resample $\rightarrow$ bandlimit $\rightarrow$ codec $\rightarrow$ packet\_loss \\
+& wb\_opus\_resample\_return & bandlimit $\rightarrow$ codec $\rightarrow$ resample \\
+& session\_nb\_mulaw & call\_path \\
+& session\_nb\_gsm & call\_path \\
+& session\_wb\_opus & call\_path \\
+\midrule
+\multirow[t]{7}{*}{Simulated replay} & rir\_only & rir \\
+& rir\_noise & rir $\rightarrow$ noise \\
+& noise\_rir & noise $\rightarrow$ rir \\
+& rir\_reencode & rir $\rightarrow$ reencode \\
+& reencode\_rir & reencode $\rightarrow$ rir \\
+& rir\_noise\_resample & rir $\rightarrow$ noise $\rightarrow$ resample \\
+& resample\_rir\_reencode & resample $\rightarrow$ rir $\rightarrow$ reencode \\
+\midrule
+\multirow[t]{9}{*}{Hybrid} & opus\_plr\_rir & codec $\rightarrow$ packet\_loss $\rightarrow$ rir \\
+& rir\_aac & rir $\rightarrow$ codec \\
+& aac\_rir & codec $\rightarrow$ rir \\
+& bandlimit\_codec\_rir & bandlimit $\rightarrow$ codec $\rightarrow$ rir \\
+& rir\_bandlimit\_codec & rir $\rightarrow$ bandlimit $\rightarrow$ codec \\
+& rir\_reencode\_plr & rir $\rightarrow$ reencode $\rightarrow$ packet\_loss \\
+& reencode\_rir\_plr & reencode $\rightarrow$ rir $\rightarrow$ packet\_loss \\
+& resample\_codec\_rir & resample $\rightarrow$ codec $\rightarrow$ rir \\
+& bandlimit\_resample\_codec & bandlimit $\rightarrow$ resample $\rightarrow$ codec \\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+Table~\ref{tab:appendix_parameter_pools} summarizes only the pool ranges and export contract. The exact per-family realizations are already determined by the template inventory and the operator descriptions below.
+
+\begin{table*}[t]
+\caption{Fixed parameter pools and export constraints in the released configuration.}
+\label{tab:appendix_parameter_pools}
+\centering
+\small
+\setlength{\tabcolsep}{5pt}
+\renewcommand{\arraystretch}{1.10}
+\begin{tabular}{@{}p{0.18\textwidth}p{0.50\textwidth}p{0.16\textwidth}@{}}
+\toprule
+\textbf{Group} & \textbf{Released range or set} & \textbf{Used by} \\
+\midrule
+Codec bitrates & AAC \{24, 32, 48\}; Opus \{16, 24, 32\}; telephony Opus \{16, 24\}; re-encode \{24, 32\} kbps & codec families \\
+Resample modes & Family-specific one-way and round-trip 8/16/24/32 kHz conversions & resample \\
+Re-encode codec set & AAC or Opus, with same/cross selection & re-encode \\
+Packet-loss settings & Loss \{1, 3, 5, 10\}\%; burst \{2, 3, 5\} frames; three concealment modes & packet loss, call path \\
+Call-path settings & Jitter \{0, 8, 16\} ms; AGC \{mild, telephony\} & call path \\
+Noise settings & Six synthetic noise types; SNR \{30, 20, 15, 10\} dB & noise \\
+RIR settings & RT60 \{0.2, 0.4, 0.6, 0.8\} s; distance \{0.5, 1.0, 2.0, 3.0\} m; three room presets & RIR \\
+Export contract & Mono 16 kHz PCM WAV; duration checked in [1, 30] s before export & all outputs \\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+\subsection{Operator realization}
+
+All operators are realized as waveform-domain transforms rather than symbolic metadata tags, and every realization is recorded in the manifest trace.
+
+\noindent\textbf{Resampling} The resampling operator uses ffmpeg with the SoX resampler at precision 28. One-way modes include 16k$\rightarrow$8k, 16k$\rightarrow$24k, 16k$\rightarrow$32k, 8k$\rightarrow$16k, 24k$\rightarrow$16k, and 32k$\rightarrow$16k. Round-trip modes are implemented as two successive resampling steps with an intermediate temporary waveform.
+
+\noindent\textbf{Band-limiting} The band-limit operator is implemented with ffmpeg filtering. The narrowband profile applies a second-order high-pass filter at 250~Hz and a second-order low-pass filter at 3400~Hz, followed by companding with 0.01~s attack and 0.15~s decay. The wideband profile applies a second-order high-pass filter at 50~Hz and a second-order low-pass filter at 7000~Hz. To avoid terminology drift, we use \emph{narrowband (250--3400~Hz)} and \emph{wideband (50--7000~Hz)} consistently throughout the appendix and treat these implementation-level cutoffs as authoritative for the released benchmark.
+
+\noindent\textbf{Codec and re-encoding} The codec and re-encode operators both perform true encode--decode round trips through ffmpeg. The supported codecs are AAC, Opus, GSM, $\mu$-law PCM, and A-law PCM. After encoding to the corresponding intermediate container, the audio is decoded back to mono PCM WAV. The only difference between these two operators is how the target codec is chosen: codec follows the template specification directly, while reencode follows the context-aware same/cross rule described above.
+
+\noindent\textbf{Packet loss} The packet-loss operator works on 20~ms waveform frames. Let $p$ denote the target loss rate after clamping to at most 0.95 and let $b$ denote the requested average burst length in frames. The underlying two-state good/bad process uses
+\begin{equation}
+P(\mathrm{bad}\rightarrow\mathrm{good}) = \min(1, 1/b)
+\label{eq:plr_bad_to_good}
+\end{equation}
+and
+\begin{equation}
+P(\mathrm{good}\rightarrow\mathrm{bad}) = \min\!\left(1, \frac{p\,P(\mathrm{bad}\rightarrow\mathrm{good})}{1-p}\right).
+\label{eq:plr_good_to_bad}
+\end{equation}
+When a frame enters the bad state, one of three concealment strategies is applied: repeat-fade, interpolation, or noise fill. The processed frames are then concatenated back into a waveform.
+
+\noindent\textbf{Room impulse responses} The RIR operator first attempts room simulation with Pyroomacoustics. For a requested room preset and RT60, it computes an absorption coefficient by inverse Sabine, samples valid source and microphone positions, generates a room impulse response, truncates the late tail, and convolves it with the waveform. If Pyroomacoustics is unavailable or fails, the renderer falls back to a synthetic RIR generator based on a direct path, exponentially decaying random reflections, and a low-level noise floor. The reverberant output is peak-normalized after convolution.
+
+\noindent\textbf{Additive noise} The noise operator adds synthetic noise at a target SNR. White noise uses i.i.d. Gaussian samples; pink noise uses $1/\sqrt{f}$ spectral shaping; brown noise is obtained by cumulative summation; hiss emphasizes high frequencies; hum combines 50, 100, and 150~Hz tonal components with low-level white noise; and babble is synthesized by summing six randomly shifted and scaled noise streams. For babble, hum, and hiss, a non-stationary amplitude envelope is applied before SNR calibration.
+
+\noindent\textbf{Call paths} The call-path operator is a composite transform with a fixed internal pipeline: profile-specific band filtering and resampling to the target sample rate, codec round trip, burst packet loss with the same implementation as above, frame-wise jitter-buffer simulation, and AGC or limiting. The wideband profile uses the same 50--7000~Hz passband as the standalone band-limit operator. The narrowband profile uses the same 250~Hz and 3400~Hz cutoffs but a different compand curve. Jitter is implemented by displacing each frame by a uniformly sampled offset in $[-J, J]$, overlap-averaging the displaced frames, and trimming or padding the result back to the original length.
+
+\section{Released metadata \& protocol reconstruction}
+\label{app:release_metadata}
+
+We now turn from waveform generation to how the packaged benchmark is encoded. The release contains one global metadata CSV and split-specific metadata CSV files. Each row describes one waveform that survives Stage-5 validation and export. The same packaging step also writes a dataset summary with speaker-disjointness checks, duplicate-ID and duplicate-path checks, dropped-row logs, and parent-coverage summaries. Together, these files form the executable interface for reconstructing the benchmark protocols.
+
+Table~\ref{tab:appendix_manifest_schema} summarizes the protocol-critical field groups. In addition to standard identifiers and provenance, the metadata records the ordered operator sequence, the order-invariant operator multiset, realized delivery parameters such as codec, bitrate, packet loss, bandwidth mode, SNR, RT60, room dimensions, source--microphone distance, and the instantiation seed.
+
+\begin{table*}[t]
+\caption{Protocol-critical released metadata groups.}
+\label{tab:appendix_manifest_schema}
+\centering
+\small
+\setlength{\tabcolsep}{5pt}
+\renewcommand{\arraystretch}{1.08}
+\begin{tabular}{@{}p{0.20\textwidth}p{0.56\textwidth}@{}}
+\toprule
+\textbf{Field group} & \textbf{Why it matters} \\
+\midrule
+Identity and paths & Links each delivered child to its clean parent and exported waveform. \\
+Labels and provenance & Supports standard train/dev/test use, filtering, and speaker-disjoint checks. \\
+Generator metadata & Enables provenance-aware analysis by generator family or system. \\
+Delivery-chain metadata & Encodes the realized family, template, operator order, and realized parameters. \\
+Matched-pair annotations & Reconstructs operator substitution, parameter perturbation, and order swap tasks. \\
+Lineage/path annotations & Reconstructs delivery lineages and graph-distance based analyses. \\
+Audio-format checks & Verifies that released files satisfy the final export contract. \\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+The structural groups are derived deterministically from the metadata rather than manually enumerated. Operator-substitution groups fix the parent utterance, binary label, delivery family, and local chain context and require exactly one operator identity change. Parameter-perturbation groups fix operator identity and order and vary exactly one parameter axis. Order-swap groups fix the realized operator multiset and differ by one adjacent transposition. Path/lineage groups fix the parent utterance, binary label, and delivery family, then derive a shortest-signature reference node and graph-distance annotations from the observed realized chains. The exact string form of the group identifiers is implementation-defined, but the grouping semantics are fixed by these rules.
+
+
+\section{Matched-parent preservation validation}
+\label{app:parent_child_drift}
+
+We validate the benchmark's matched-parent assumption: delivery rendering should alter surface acoustics without materially changing utterance content or speaker identity, so that the clean parent remains a valid reference for controlled comparison. The analysis runs from the packaged Stage-5 metadata and, by default, scans the exported test split. For each row it resolves the child waveform, its paired clean parent, and the canonical transcript, then writes row-level outputs keyed by sample\_id and parent\_id.
+
+Each child--parent pair yields three preservation signals and two bookkeeping outputs. The script computes parent and child ASR hypotheses and measures transcript preservation against the canonical transcript using WER and CER, reporting $\Delta$WER and $\Delta$CER as child-minus-parent drift. It also embeds the parent and child waveforms with a fixed speaker backend and reports cosine similarity, while the waveform itself provides lightweight acoustic drift measures such as duration ratio, RMS change, and peak amplitude. In addition, the export records status and error fields and emits both row-level and aggregated summaries.
+
+The text normalization and error-rate computation follow the released implementation. For English, the reference and hypothesis are lowercased, punctuation is stripped, and whitespace is collapsed before tokenization. For Chinese, the normalization keeps CJK and alphanumeric characters, and WER falls back to character-level tokenization when no whitespace segmentation is present. CER is always computed on the normalized character sequence. The row-level export retains both raw and normalized hypotheses so the preservation statistics can be recomputed exactly.
+
+The validation backends are fixed. ASR uses the default transformers\_asr backend with a Hugging Face automatic-speech-recognition pipeline instantiated from openai/whisper-large-v3-turbo, chunk length 15\,s, batch size 16, generation task transcribe, and half-precision model loading. Speaker preservation uses the default transformers\_speaker backend, which loads a wavlm-base-sv x-vector checkpoint through AutoFeatureExtractor and AutoModelForAudioXVector, embeds parent and child audio in batches of 16, $\ell_2$-normalizes the embeddings, and computes cosine similarity. These backends are held fixed across all families and languages.
+
+Overall, the mean child-minus-parent drift is 0.061 in WER and 0.043 in CER, with mean speaker cosine 0.941, mean duration ratio 1.056, and mean absolute RMS drift of 2.334\,dB. Platform-like remains closest to the parent, telephony introduces moderate degradation, and simulated replay and hybrid induce the largest shifts. This pattern supports the benchmark design: delivery transforms are strong enough to create a meaningful robustness challenge while still preserving the matched-parent structure required for controlled evaluation.
+
+Table~\ref{tab:appendix_parent_child_drift} reports only family means because this is the clearest compact summary for the paper. The released preservation outputs additionally provide row-level records, family-language aggregates, and explicit status counts. We therefore aggregate bona fide and spoof rows together in the appendix: the preservation question concerns whether the delivery renderer preserves the parent-reference relationship, which is a property of the transformation pipeline rather than of the detection label. The row-level CSV retains the original label field, so median, percentile, or label-conditioned summaries can be reproduced directly from the released outputs without rerendering the dataset.
+
+\begin{table}[t]
+\centering
+\footnotesize
+\setlength{\tabcolsep}{4pt}
+\renewcommand{\arraystretch}{1.02}
+\caption{Matched-parent preservation statistics by delivery family. Entries are family means over successful child--parent comparisons. $\Delta$WER and $\Delta$CER denote child-minus-parent transcript error drift against the reference transcript; lower is better. Speaker cosine is higher-is-better. Duration ratio and $|\bm{\Delta\mathrm{RMS}}|$ summarize acoustic drift.}
+\label{tab:appendix_parent_child_drift}
+\begin{tabular*}{0.96\linewidth}{@{\extracolsep{\fill}}lccccc@{}}
+\toprule
+\textbf{Family} & \textbf{$\bm{\Delta}$WER} & \textbf{$\bm{\Delta}$CER} & \textbf{Speaker cos.} & \textbf{Dur. ratio} & \textbf{$\bm{|\Delta\mathrm{RMS}|}$} \\
+\midrule
+Direct    & 0.000 & 0.000 & 1.000 & 1.000 & 0.000 \\
+Platform  & 0.012 & 0.011 & 0.986 & 1.005 & 0.245 \\
+Telephony & 0.059 & 0.046 & 0.943 & 1.001 & 1.620 \\
+SimReplay & 0.094 & 0.063 & 0.909 & 1.120 & 4.247 \\
+Hybrid    & 0.095 & 0.065 & 0.910 & 1.114 & 3.842 \\
+\bottomrule
+\end{tabular*}
+\end{table}
+
+\section{Benchmark-specific robustness metrics}
+\label{app:robust_metrics}
+
+Here we define only the new robustness metrics introduced in this work. Standard detection metrics such as EER, AUC, accuracy, and $F_1$ are omitted for brevity. Throughout the appendix we use the full name \emph{mean normalized score drift} (MNSD) consistently; the abbreviated table header \emph{NSD} in the main experiments section refers to the same quantity.
+
+\begin{table*}[t]
+\caption{Compact summary of the benchmark-specific metrics.}
+\label{tab:appendix_new_metrics_summary}
+\centering
+\small
+\setlength{\tabcolsep}{5pt}
+\renewcommand{\arraystretch}{1.10}
+\begin{tabular}{@{}p{0.13\textwidth}p{0.11\textwidth}p{0.19\textwidth}p{0.10\textwidth}@{}}
+\toprule
+\textbf{Setting} & \textbf{Metric} & \textbf{What it captures} & \textbf{Better} \\
+\midrule
+Matched pairs & PCR & Decision stability & Higher \\
+Matched pairs & PJA & Stable correctness & Higher \\
+Matched pairs & MNSD & Score sensitivity & Lower \\
+Matched pairs & SMR (aux.) & Pairwise error risk & Lower \\
+Lineages & C-FFD & First-failure distance & Higher \\
+Lineages & $R_k$ & Correctness up to distance $k$ & Higher \\
+Lineages & AURC-chain & Overall lineage robustness & Higher \\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+\subsection{Notation and thresholding}
+
+Let each evaluation sample have score $s_i \in \mathbb{R}$ and binary label $y_i \in \{0,1\}$, where $y_i=1$ denotes bona fide speech and $y_i=0$ denotes spoofed speech. Larger scores indicate stronger bona fide evidence. For each benchmark task, let $\mathcal{E}$ denote the full scored evaluation split used for method comparison (in our experiments, the pooled test split for that task), with score set $S_{\mathcal{E}}$ and labels $Y_{\mathcal{E}}$. We define a single \emph{reference operating point} once per task by
+\begin{equation}
+\tau_{\mathrm{ref}} =
+\begin{cases}
+\tau_{\mathrm{EER}}(S_{\mathcal{E}}, Y_{\mathcal{E}}), & \text{if both classes are present in } \mathcal{E},\\
+0.5, & \text{otherwise}.
+\end{cases}
+\label{eq:pair_threshold}
+\end{equation}
+The matched-pair and lineage metrics then convert scores to hard decisions using this same fixed threshold:
+\begin{equation}
+\hat{y}_i = \mathbb{I}[s_i \ge \tau_{\mathrm{ref}}].
+\label{eq:pair_decision}
+\end{equation}
+
+Two implementation choices matter. First, $\tau_{\mathrm{ref}}$ is estimated \emph{once} from the full evaluation split $\mathcal{E}$ and then reused for all matched-pair sets, delivery families, and lineage analyses within that task; it is not recomputed for individual subsets. Second, the hard-decision robustness metrics are intended as \emph{standardized analysis summaries at a common evaluation-defined operating point}, not as a claim of deployment-ready threshold calibration. This avoids subgroup-specific retuning and anchors all robustness comparisons to the same decision rule.
+
+Accordingly, the threshold-free metrics (notably EER/AUC in the main experiments and MNSD below) should be read as the primary calibration-independent summaries, while PCR, PJA, C-FFD, $R_k$, and AURC-chain are decision-level diagnostics at the common reference operating point $\tau_{\mathrm{ref}}$. The use of $\tau_{\mathrm{EER}}$ therefore standardizes the binary robustness analyses rather than optimizing each protocol independently.
+
+\subsection{Matched-pair metrics}
+
+For operator substitution, parameter perturbation, and order swap, evaluation is carried out on the set of valid matched pairs
+\begin{equation}
+\mathcal{P} = \{(i_m,j_m)\}_{m=1}^{M},
+\label{eq:pair_set}
+\end{equation}
+where the two members of each pair share the same ground-truth label and differ only in the targeted local intervention.
+
+\noindent\textbf{Pair consistency rate} The pair consistency rate is defined as
+\begin{equation}
+\mathrm{PCR} =
+\frac{1}{M}
+\sum_{m=1}^{M}
+\mathbb{I}[\hat{y}_{i_m}=\hat{y}_{j_m}],
+\label{eq:pcr}
+\end{equation}
+and measures whether the detector preserves its binary decision under the controlled local edit, regardless of whether that decision is correct.
+
+\noindent\textbf{Pair joint accuracy} To separate stable-and-correct behavior from stable-but-wrong behavior, the pair joint accuracy is defined by
+\begin{equation}
+\mathrm{PJA} =
+\frac{1}{M}
+\sum_{m=1}^{M}
+\mathbb{I}[\hat{y}_{i_m}=y_{i_m} \;\land\; \hat{y}_{j_m}=y_{j_m}],
+\label{eq:pja}
+\end{equation}
+which requires both members of the pair to be classified correctly.
+
+\noindent\textbf{Mean normalized score drift} Because a detector can keep the same hard decision while still showing substantial score-level sensitivity, we also report the mean normalized score drift. Let
+\begin{equation}
+S = \{s_1,\ldots,s_N\},
+\qquad
+\mathrm{IQR}(S)=Q_{0.75}(S)-Q_{0.25}(S).
+\label{eq:iqr_definition}
+\end{equation}
+Then
+\begin{equation}
+\mathrm{MNSD} =
+\frac{1}{\max(\mathrm{IQR}(S), 10^{-12})}
+\cdot
+\frac{1}{M}
+\sum_{m=1}^{M}
+|s_{i_m}-s_{j_m}|.
+\label{eq:mnsd}
+\end{equation}
+In the implementation, if the score IQR is numerically zero, the denominator is replaced by $1$; Eq.~\eqref{eq:mnsd} writes the same safeguard in compact form.
+
+\noindent\textbf{Symmetric misclassification risk} The scorer also records an auxiliary diagnostic called symmetric misclassification risk. Define the sample-level 0--1 loss as
+\begin{equation}
+\ell_i = \mathbb{I}[\hat{y}_i \neq y_i].
+\label{eq:zero_one_loss}
+\end{equation}
+The corresponding pairwise quantity is
+\begin{equation}
+\mathrm{SMR} =
+\frac{1}{M}
+\sum_{m=1}^{M}
+\frac{\ell_{i_m}+\ell_{j_m}}{2}.
+\label{eq:smr}
+\end{equation}
+SMR summarizes the average misclassification burden within a matched pair and is mainly useful as a diagnostic complement to PCR, PJA, and MNSD.
+
+\subsection{Delivery-lineage metrics}
+
+A delivery lineage groups all rendered samples that share the same parent utterance, delivery family, and binary label. Each node $v$ in lineage $g$ carries an observed operator-signature sequence $\sigma(v)$. The reference node $r_g$ is the shortest observed signature realization in that lineage.
+
+\noindent\textbf{Lineage graph and node correctness} Distances are defined on a lineage graph rather than directly on template identifiers. The graph nodes are observed operator-signature realizations, and an undirected edge is inserted whenever two realizations differ by exactly one atomic delivery edit: a single parameter perturbation, a single operator substitution, an adjacent order swap, or a single insertion/deletion. Let the shortest-path distance from $r_g$ to node $v$ be $d_g(v)$.
+Using the same fixed reference threshold from Eq.~\eqref{eq:pair_threshold}, node correctness is defined by
+\begin{equation}
+c(v) = \mathbb{I}[\hat{y}(v)=y(v)].
+\label{eq:node_correctness}
+\end{equation}
+
+\noindent\textbf{Censored first-failure distance} For lineage $g$, the first-failure distance is
+\begin{equation}
+\rho_g = \min\{d_g(v): c(v)=0\},
+\label{eq:ffd}
+\end{equation}
+whenever at least one misclassified node is observed in that lineage. Some lineages may have no observed failure at all and are therefore right-censored.
+
+Let
+\begin{equation}
+D_{\max} = \max_{g \in \mathcal{G}}\; \max_{v \in g} d_g(v)
+\label{eq:dmax}
+\end{equation}
+be the largest observed lineage distance in the evaluation set. The censored first-failure distance is then
+\begin{equation}
+\tilde{\rho}_g =
+\begin{cases}
+\rho_g, & \text{if lineage } g \text{ contains at least one observed failure},\\
+D_{\max}+1, & \text{otherwise},
+\end{cases}
+\label{eq:censored_ffd_lineage}
+\end{equation}
+and the reported aggregate is
+\begin{equation}
+\mathrm{C\mbox{-}FFD} =
+\frac{1}{|\mathcal{G}|}
+\sum_{g \in \mathcal{G}}
+\tilde{\rho}_g.
+\label{eq:cffd}
+\end{equation}
+C-FFD increases when correct behavior persists farther from the reference node along the lineage graph.
+
+\noindent\textbf{Robust-at-distance} To summarize robustness at progressively larger edit distances, we define
+\begin{equation}
+R_k =
+\frac{1}{|\mathcal{G}|}
+\sum_{g \in \mathcal{G}}
+\mathbb{I}\!\left[
+\forall v \in g,\ d_g(v) \le k \Rightarrow c(v)=1
+\right],
+\qquad k=0,1,\ldots,D_{\max}.
+\label{eq:robust_at_k}
+\end{equation}
+Hence, $R_k$ is the fraction of lineages that remain entirely correct up to and including graph distance $k$.
+
+\noindent\textbf{AURC-chain} Finally, the area under the robustness curve is defined by
+\begin{equation}
+\mathrm{AURC\mbox{-}chain} =
+\frac{1}{D_{\max}+1}
+\sum_{k=0}^{D_{\max}} R_k.
+\label{eq:aurc_chain}
+\end{equation}
+AURC-chain compresses the full robustness profile into a single scalar and increases when correctness is maintained more consistently under progressively larger delivery edits.

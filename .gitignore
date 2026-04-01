@@ -6,3 +6,6 @@ release/
 __pycache__/
 .vscode/
 .cursor/
+*.egg-info/
+build/
+dist/
