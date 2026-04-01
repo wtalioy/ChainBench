@@ -134,9 +134,10 @@ tbody tr:hover { background: rgba(0,113,227,0.03); }
 
 /* --- Charts --- */
 .chart-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1.5rem; margin-top: 2rem; }
-.chart-box { background: var(--bg); border-radius: var(--radius); padding: 1.75rem; border: 1px solid var(--border-light); height: 420px; position: relative; }
+.chart-box { background: var(--bg); border-radius: var(--radius); padding: 1.75rem; border: 1px solid var(--border-light); }
 .chart-box h4 { font-size: 0.92rem; font-weight: 600; margin-bottom: 0.75rem; color: var(--primary); text-align: center; letter-spacing: -0.01em; }
-.chart-box canvas { width: 100% !important; height: calc(100% - 2.5rem) !important; }
+.chart-wrap { position: relative; height: 280px; }
+.chart-wrap-auto { height: auto; max-width: 300px; margin: 0 auto; }
 
 /* --- Policy --- */
 .policy-grid { display: grid; gap: 2.5rem; }
@@ -162,7 +163,7 @@ footer .footer-copy { font-size: 0.78rem; color: var(--text-secondary); opacity:
   .stat-num { font-size: 1.5rem; }
   .stat-grid { grid-template-columns: repeat(2, 1fr); gap: 0.75rem; }
   .chart-grid { grid-template-columns: 1fr; }
-  .chart-box { height: 300px; }
+  .chart-wrap { height: 240px; }
   .family-grid { grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); }
   .sample-header { padding: 0.9rem 1rem; }
   .chart-box { padding: 1.25rem; }
@@ -187,7 +188,7 @@ footer .footer-copy { font-size: 0.78rem; color: var(--text-secondary); opacity:
   <a href="#statistics">Statistics</a>
   <a href="#families">Families &amp; Operators</a>
   <a href="#samples">Audio Samples</a>
-  <a href="#policy">License &amp; Policy</a>
+  <a href="#policy">Release &amp; License</a>
 </div>
 </nav>
 
@@ -248,19 +249,19 @@ footer .footer-copy { font-size: 0.78rem; color: var(--text-secondary); opacity:
   <div class="chart-grid">
     <div class="chart-box">
       <h4>Samples by Delivery Family</h4>
-      <canvas id="familyChart"></canvas>
+      <div class="chart-wrap"><canvas id="familyChart"></canvas></div>
     </div>
     <div class="chart-box">
       <h4>Label Distribution</h4>
-      <canvas id="labelChart"></canvas>
+      <div class="chart-wrap chart-wrap-auto"><canvas id="labelChart"></canvas></div>
     </div>
     <div class="chart-box">
       <h4>Train / Dev / Test Split</h4>
-      <canvas id="splitChart"></canvas>
+      <div class="chart-wrap"><canvas id="splitChart"></canvas></div>
     </div>
     <div class="chart-box">
       <h4>Language Distribution</h4>
-      <canvas id="langChart"></canvas>
+      <div class="chart-wrap"><canvas id="langChart"></canvas></div>
     </div>
   </div>
 </div>
@@ -417,28 +418,16 @@ footer .footer-copy { font-size: 0.78rem; color: var(--text-secondary); opacity:
 
 <section id="policy">
 <div class="container">
-  <div class="section-label">License &amp; Policy</div>
-  <h2>License, Release, and Responsible Use</h2>
-  <p style="margin-bottom:2rem;">
-    <a href="https://github.com/wtalioy/ChainBench/blob/main/LICENSE" target="_blank" style="display:inline-block;padding:0.3rem 0.8rem;background:var(--bg-alt);border:1px solid var(--border-light);border-radius:50px;font-size:0.8rem;color:var(--text);text-decoration:none;font-weight:600;">MIT License</a>
-  </p>
+  <div class="section-label">Release &amp; License</div>
+  <h2>Release, License, and Use</h2>
 
-  <div class="policy-grid">
-    <div class="policy-section">
-      <h3><span class="policy-num">1</span> License Compliance and Provenance</h3>
-      <p>ChainBench-ADD is built from multiple upstream speech resources and TTS systems with heterogeneous license and usage terms. The release distinguishes between assets created by this project (benchmark organization, metadata manifests, split files, delivery templates, operator configurations, scripts, and baseline code) and assets obtained from third-party providers, which remain subject to their original licenses. Users are responsible for complying with the terms of the original providers when obtaining, using, or redistributing upstream dependencies.</p>
-    </div>
+  <p>ChainBench-ADD distinguishes between <strong>code</strong> and the <strong>benchmark package</strong>. The code repository, including construction scripts, configurations, and baseline implementations, is released under the <a href="https://github.com/wtalioy/ChainBench/blob/main/LICENSE" target="_blank" style="font-weight:600;color:var(--accent);text-decoration:none;">MIT License</a>. The dataset release is distributed under the <a href="https://huggingface.co/datasets/Lioy/ChainBench/blob/main/LICENSE" target="_blank" style="font-weight:600;color:var(--accent);text-decoration:none;">ChainBench-ADD Dataset Terms of Use</a>.</p>
 
-    <div class="policy-section">
-      <h3><span class="policy-num">2</span> Release Package</h3>
-      <p>The released package includes benchmark audio, metadata manifests, split definitions, construction and rendering scripts, configuration files, and baseline training and evaluation code. The metadata support all benchmark protocols, including parent&ndash;child linkage, delivery-family labels, template and variant identifiers, ordered operator signatures, and task-specific grouping information. The repository also provides example commands and instructions for reproducing the benchmark tasks.</p>
-    </div>
+  <p>ChainBench-ADD is assembled from multiple upstream speech resources and speech-generation systems. All third-party datasets, models, audio, and other external assets remain subject to their original licenses, terms, and attribution requirements. The ChainBench-ADD Dataset Terms of Use apply to this benchmark release as distributed by the authors and do not replace or weaken any applicable upstream obligations.</p>
 
-    <div class="policy-section">
-      <h3><span class="policy-num">3</span> Responsible Use</h3>
-      <p>ChainBench-ADD is released for research on audio deepfake detection, robustness evaluation, and benchmark construction. It is not released as a voice-cloning service or impersonation toolkit. The intended use is defensive: to study how post-generation delivery affects detector reliability. The project must not be used for impersonation, fraud, harassment, social engineering, or the creation of deceptive media. The release preserves and defers to upstream restrictions where they exist.</p>
-    </div>
-  </div>
+  <p>ChainBench-ADD is released for research on audio deepfake detection, robustness evaluation, forensic analysis, provenance, and benchmarking. It is provided for <strong>defensive and scientific use only</strong>. The benchmark must not be used to support or enable impersonation, fraud, harassment, social engineering, unauthorized voice cloning, deceptive media generation, biometric surveillance, or the training or improvement of systems intended for deceptive speech generation.</p>
+
+  <p>Redistribution of the benchmark package, or any subset that includes third-party material, is permitted only to the extent allowed by all applicable upstream terms and must preserve the relevant notices and this use statement.</p>
 </div>
 </section>
 
@@ -448,7 +437,7 @@ footer .footer-copy { font-size: 0.78rem; color: var(--text-secondary); opacity:
     <a href="https://huggingface.co/datasets/Lioy/ChainBench">HuggingFace Dataset</a> &nbsp;&middot;&nbsp;
     <a href="appendix.pdf">Appendix (PDF)</a>
   </div>
-  <div class="footer-copy">ChainBench-ADD &middot; Released under the MIT License</div>
+  <div class="footer-copy">ChainBench-ADD &middot; Code: MIT License &middot; Dataset: ChainBench-ADD Dataset Terms of Use</div>
 </footer>
 
 <script>
@@ -508,7 +497,7 @@ function initCharts() {
       labels: ['Bona Fide (315,573)', 'Spoof (625,628)'],
       datasets: [{ data: [315573, 625628], backgroundColor: ['#34c759', '#ff3b30'], borderWidth: 2, borderColor: '#fff' }]
     },
-    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
+    options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { position: 'bottom' } } }
   });
 
   new Chart(document.getElementById('splitChart'), {
